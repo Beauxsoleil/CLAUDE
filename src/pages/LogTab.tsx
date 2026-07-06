@@ -20,22 +20,25 @@ export function LogTab({
   campId,
   teams,
   transactions,
+  multiplierFor,
 }: {
   campId: string;
   teams: Team[];
   transactions: Transaction[];
+  multiplierFor: (ts: number) => number;
 }) {
   const confirm = useConfirm();
   const teamColors = useMemo(() => new Map(teams.map((t) => [t.id, t.color])), [teams]);
 
   async function handleDelete(tx: Transaction) {
+    const eff = tx.points * multiplierFor(tx.createdAt);
     const ok = await confirm({
       title: 'Reverse this entry?',
-      message: `${tx.points > 0 ? '+' : ''}${tx.points} to ${tx.teamName} for "${tx.reason}" will be removed from their total.`,
+      message: `${eff > 0 ? '+' : ''}${eff} to ${tx.teamName} for "${tx.reason}" will be removed from their total.`,
       confirmLabel: 'Reverse it',
       danger: true,
     });
-    if (ok) await deleteTransaction(campId, tx.id);
+    if (ok) deleteTransaction(campId, tx.id);
   }
 
   return (
@@ -50,7 +53,10 @@ export function LogTab({
           </p>
         </div>
       )}
-      {transactions.map((tx) => (
+      {transactions.map((tx) => {
+        const mult = multiplierFor(tx.createdAt);
+        const eff = tx.points * mult;
+        return (
         <div key={tx.id} className="flex items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 ring-1 ring-white/5">
           <span
             className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -63,13 +69,18 @@ export function LogTab({
               {formatWhen(tx.createdAt)} · {tx.type === 'event' ? 'Event' : 'Manual'}
             </p>
           </div>
+          {mult === 2 && (
+            <span className="shrink-0 rounded-full bg-fuchsia-400/15 px-1.5 py-0.5 text-[10px] font-black text-fuchsia-300 ring-1 ring-fuchsia-400/30">
+              2×
+            </span>
+          )}
           <span
             className={`shrink-0 text-lg font-black tabular-nums ${
-              tx.points >= 0 ? 'text-emerald-400' : 'text-red-400'
+              eff >= 0 ? 'text-emerald-400' : 'text-red-400'
             }`}
           >
-            {tx.points >= 0 ? '+' : ''}
-            {tx.points}
+            {eff >= 0 ? '+' : ''}
+            {eff}
           </span>
           <button
             onClick={() => handleDelete(tx)}
@@ -79,7 +90,8 @@ export function LogTab({
             <XIcon className="h-4 w-4" />
           </button>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

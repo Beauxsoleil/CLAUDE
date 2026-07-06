@@ -2,6 +2,8 @@ export interface Camp {
   id: string;
   name: string;
   createdAt: number;
+  /** Local-date keys (YYYY-MM-DD) on which all points count double. */
+  doublePointDays?: string[];
 }
 
 export interface Team {

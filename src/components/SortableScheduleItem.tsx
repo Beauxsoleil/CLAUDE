@@ -7,17 +7,27 @@ import { CheckIcon, GripIcon, PencilIcon, XIcon } from './icons';
 const STATUS_STYLES: Record<ScheduleItem['status'], string> = {
   pending: 'bg-slate-900 ring-1 ring-white/5',
   active: 'bg-amber-400/10 ring-1 ring-amber-400/60',
-  done: 'bg-slate-900/50 ring-1 ring-white/5 opacity-50',
+  done: 'bg-slate-900/50 ring-1 ring-white/5 opacity-70',
 };
+
+export interface PlacementDisplay {
+  place: number;
+  name: string;
+  color: string;
+}
+
+const PLACE_MEDALS = ['🥇', '🥈', '🥉'];
 
 export function SortableScheduleItem({
   item,
+  placements = [],
   onStart,
   onFinish,
   onEdit,
   onDelete,
 }: {
   item: ScheduleItem;
+  placements?: PlacementDisplay[];
   onStart: () => void;
   onFinish: () => void;
   onEdit: () => void;
@@ -78,6 +88,17 @@ export function SortableScheduleItem({
         <p className="text-sm text-slate-500">
           {item.points} pts · ~{item.durationMin} min
         </p>
+        {placements.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+            {placements.map((p) => (
+              <span key={p.place} className="flex items-center gap-1 text-xs font-semibold text-slate-300">
+                <span>{PLACE_MEDALS[p.place - 1] ?? `${p.place}.`}</span>
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
+                {p.name}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-1">
         {item.status === 'pending' && (

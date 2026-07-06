@@ -11,26 +11,20 @@ export function ExtraPointsModal({
 }: {
   teams: TeamWithTotal[];
   onClose: () => void;
-  onAward: (teamId: string, points: number, reason: string) => Promise<void>;
+  onAward: (teamId: string, points: number, reason: string) => void;
 }) {
   const [teamId, setTeamId] = useState(teams[0]?.id ?? '');
   const [amount, setAmount] = useState(10);
   const [mode, setMode] = useState<'award' | 'deduct'>('award');
   const [reason, setReason] = useState('');
-  const [busy, setBusy] = useState(false);
 
   const signedPoints = mode === 'deduct' ? -Math.abs(amount) : Math.abs(amount);
 
-  async function submit(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!teamId || amount === 0) return;
-    setBusy(true);
-    try {
-      await onAward(teamId, signedPoints, reason.trim() || (mode === 'deduct' ? 'Deduction' : 'Extra points'));
-      onClose();
-    } finally {
-      setBusy(false);
-    }
+    onAward(teamId, signedPoints, reason.trim() || (mode === 'deduct' ? 'Deduction' : 'Extra points'));
+    onClose();
   }
 
   return (
@@ -148,12 +142,12 @@ export function ExtraPointsModal({
           </button>
           <button
             type="submit"
-            disabled={busy || !teamId || amount === 0}
+            disabled={!teamId || amount === 0}
             className={`flex-1 rounded-2xl px-4 py-3.5 font-bold transition active:scale-[0.98] disabled:opacity-40 ${
               mode === 'deduct' ? 'bg-red-500 text-white' : 'bg-amber-400 text-slate-900'
             }`}
           >
-            {busy ? 'Saving…' : mode === 'deduct' ? `Deduct −${Math.abs(amount)}` : `Award +${Math.abs(amount)}`}
+            {mode === 'deduct' ? `Deduct −${Math.abs(amount)}` : `Award +${Math.abs(amount)}`}
           </button>
         </div>
       </form>

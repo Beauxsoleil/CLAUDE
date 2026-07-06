@@ -142,6 +142,28 @@ export function FlagIcon({ className }: IconProps) {
   );
 }
 
+export function ZapIcon({ className }: IconProps) {
+  return (
+    <Svg className={className} fill="currentColor">
+      <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" stroke="none" />
+    </Svg>
+  );
+}
+
+export function WifiOffIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M12 20h.01" />
+      <path d="M8.5 16.4a5 5 0 0 1 7 0" />
+      <path d="M5 12.9a10 10 0 0 1 5.2-2.7" />
+      <path d="M19 12.9a9.96 9.96 0 0 0-2.3-1.7" />
+      <path d="M2 8.8A15 15 0 0 1 8.4 5.6" />
+      <path d="M22 8.8a15 15 0 0 0-9.3-3.7" />
+      <path d="m2 2 20 20" />
+    </Svg>
+  );
+}
+
 export function TentIcon({ className }: IconProps) {
   return (
     <Svg className={className}>

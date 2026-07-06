@@ -9,8 +9,9 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import type { EventPreset, ScheduleItem } from '../types';
-import { SortableScheduleItem } from '../components/SortableScheduleItem';
+import type { EventPreset, ScheduleItem, Team } from '../types';
+import type { Placement } from '../hooks/useCampData';
+import { SortableScheduleItem, type PlacementDisplay } from '../components/SortableScheduleItem';
 import { PlusIcon } from '../components/icons';
 import { ScheduleItemModal, type ScheduleItemFormValue } from '../components/ScheduleItemModal';
 import {
@@ -26,10 +27,14 @@ export function ScheduleTab({
   campId,
   schedule,
   presets,
+  teams,
+  eventPlacements,
 }: {
   campId: string;
   schedule: ScheduleItem[];
   presets: EventPreset[];
+  teams: Team[];
+  eventPlacements: Map<string, Placement[]>;
 }) {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<ScheduleItem | null>(null);
@@ -65,6 +70,14 @@ export function ScheduleTab({
   const remaining = schedule.filter((s) => s.status !== 'done');
   const totalMinutes = remaining.reduce((sum, s) => sum + s.durationMin, 0);
   const doneCount = schedule.length - remaining.length;
+
+  const teamById = new Map(teams.map((t) => [t.id, t]));
+  function placementsFor(itemId: string): PlacementDisplay[] {
+    return (eventPlacements.get(itemId) ?? []).flatMap((p) => {
+      const team = teamById.get(p.teamId);
+      return team ? [{ place: p.place, name: team.name, color: team.color }] : [];
+    });
+  }
 
   return (
     <div className="flex flex-col gap-4 p-4 pb-32">
@@ -105,6 +118,7 @@ export function ScheduleTab({
               <SortableScheduleItem
                 key={item.id}
                 item={item}
+                placements={placementsFor(item.id)}
                 onStart={() => setActiveScheduleItem(campId, schedule, item.id)}
                 onFinish={() => markScheduleItemDone(campId, item.id)}
                 onEdit={() => {

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ScheduleItem, Transaction } from '../types';
-import type { TeamWithTotal } from '../hooks/useCampData';
+import type { ScheduleItem } from '../types';
+import type { Placement, TeamWithTotal } from '../hooks/useCampData';
 import type { Tab } from '../App';
 import { ExtraPointsModal } from '../components/ExtraPointsModal';
 import { useConfirm } from '../components/ConfirmSheet';
-import { CheckIcon, PlayIcon, PlusIcon } from '../components/icons';
+import { CheckIcon, PlayIcon, PlusIcon, ZapIcon } from '../components/icons';
 import { contrastText } from '../lib/colors';
 import {
   awardPoints,
@@ -15,6 +15,12 @@ import {
 
 const RANK_BADGES = ['🥇', '🥈', '🥉'];
 
+export function placeLabel(place: number): string {
+  if (place <= 3) return RANK_BADGES[place - 1];
+  const suffix = place === 21 ? 'st' : place === 22 ? 'nd' : place === 23 ? 'rd' : 'th';
+  return `${place}${suffix}`;
+}
+
 interface UndoToast {
   message: string;
   txId: string;
@@ -24,17 +30,19 @@ export function LiveTab({
   campId,
   teams,
   schedule,
-  transactions,
   activeScheduleItem,
   nextScheduleItem,
+  isTodayDouble,
+  eventPlacements,
   onNavigate,
 }: {
   campId: string;
   teams: TeamWithTotal[];
   schedule: ScheduleItem[];
-  transactions: Transaction[];
   activeScheduleItem: ScheduleItem | null;
   nextScheduleItem: ScheduleItem | null;
+  isTodayDouble: boolean;
+  eventPlacements: Map<string, Placement[]>;
   onNavigate: (tab: Tab) => void;
 }) {
   const confirm = useConfirm();
@@ -49,19 +57,17 @@ export function LiveTab({
     return () => clearInterval(id);
   }, []);
 
-  // Derived from the shared transaction log so every device sees the same
-  // "already awarded" state for the active event.
-  const awardedTeamIds = useMemo(() => {
-    if (!activeScheduleItem) return new Set<string>();
-    return new Set(
-      transactions
-        .filter((tx) => tx.scheduleItemId === activeScheduleItem.id)
-        .map((tx) => tx.teamId),
-    );
-  }, [transactions, activeScheduleItem]);
+  // Finishing order for the active event, shared across devices via the
+  // transaction log (first award = 1st place).
+  const placeByTeam = useMemo(() => {
+    if (!activeScheduleItem) return new Map<string, number>();
+    const placements = eventPlacements.get(activeScheduleItem.id) ?? [];
+    return new Map(placements.map((p) => [p.teamId, p.place]));
+  }, [eventPlacements, activeScheduleItem]);
 
   const maxTotal = Math.max(...teams.map((t) => t.total), 1);
   const needsSetup = teams.length === 0 || schedule.length === 0;
+  const multiplier = isTodayDouble ? 2 : 1;
 
   const elapsedMin = activeScheduleItem?.startedAt
     ? Math.max(0, Math.floor((now - activeScheduleItem.startedAt) / 60_000))
@@ -82,30 +88,30 @@ export function LiveTab({
     if (toastTimer.current) clearTimeout(toastTimer.current);
     const { txId } = toast;
     setToast(null);
-    await deleteTransaction(campId, txId);
+    deleteTransaction(campId, txId);
   }
 
-  async function startNext() {
+  function startNext() {
     if (!nextScheduleItem) return;
-    await setActiveScheduleItem(campId, schedule, nextScheduleItem.id);
+    setActiveScheduleItem(campId, schedule, nextScheduleItem.id);
   }
 
-  async function finishActive() {
+  function finishActive() {
     if (!activeScheduleItem) return;
-    await markScheduleItemDone(campId, activeScheduleItem.id);
+    markScheduleItemDone(campId, activeScheduleItem.id);
   }
 
   async function awardForActiveEvent(team: TeamWithTotal) {
     if (!activeScheduleItem) return;
-    if (awardedTeamIds.has(team.id)) {
+    if (placeByTeam.has(team.id)) {
       const ok = await confirm({
         title: `${team.name} already got points`,
-        message: `They already received points for "${activeScheduleItem.name}". Award another +${activeScheduleItem.points}?`,
+        message: `They finished ${placeLabel(placeByTeam.get(team.id) ?? 1)} in "${activeScheduleItem.name}". Award another +${activeScheduleItem.points * multiplier}?`,
         confirmLabel: 'Award again',
       });
       if (!ok) return;
     }
-    const txId = await awardPoints(campId, {
+    const txId = awardPoints(campId, {
       teamId: team.id,
       teamName: team.name,
       points: activeScheduleItem.points,
@@ -113,12 +119,15 @@ export function LiveTab({
       type: 'event',
       scheduleItemId: activeScheduleItem.id,
     });
-    showUndoToast(`+${activeScheduleItem.points} to ${team.name}`, txId);
+    showUndoToast(
+      `+${activeScheduleItem.points * multiplier}${isTodayDouble ? ' (2×)' : ''} to ${team.name}`,
+      txId,
+    );
   }
 
-  async function awardExtra(teamId: string, points: number, reason: string) {
+  function awardExtra(teamId: string, points: number, reason: string) {
     const team = teams.find((t) => t.id === teamId);
-    const txId = await awardPoints(campId, {
+    const txId = awardPoints(campId, {
       teamId,
       teamName: team?.name ?? 'Team',
       points,
@@ -126,11 +135,26 @@ export function LiveTab({
       type: 'manual',
       scheduleItemId: null,
     });
-    showUndoToast(`${points > 0 ? '+' : ''}${points} to ${team?.name ?? 'team'}`, txId);
+    const eff = points * multiplier;
+    showUndoToast(
+      `${eff > 0 ? '+' : ''}${eff}${isTodayDouble ? ' (2×)' : ''} to ${team?.name ?? 'team'}`,
+      txId,
+    );
   }
 
   return (
     <div className="flex flex-col gap-6 p-4 pb-32">
+      {/* Double point day banner */}
+      {isTodayDouble && (
+        <div className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-500/20 via-fuchsia-500/20 to-violet-500/20 px-4 py-2.5 ring-1 ring-fuchsia-400/40">
+          <ZapIcon className="h-4 w-4 text-fuchsia-300" />
+          <p className="text-sm font-bold text-fuchsia-200">
+            Double point day — everything counts 2×
+          </p>
+          <ZapIcon className="h-4 w-4 text-fuchsia-300" />
+        </div>
+      )}
+
       {/* First-run guided checklist */}
       {needsSetup && !activeScheduleItem && (
         <div className="rounded-3xl bg-slate-900 p-5 ring-1 ring-white/5">
@@ -174,7 +198,10 @@ export function LiveTab({
             </span>
           </div>
           <h2 className="mt-2 text-3xl font-black leading-tight">{activeScheduleItem.name}</h2>
-          <p className="mt-1 font-semibold opacity-80">{activeScheduleItem.points} pts to award</p>
+          <p className="mt-1 font-semibold opacity-80">
+            {activeScheduleItem.points * multiplier} pts to award
+            {isTodayDouble && <span className="ml-1.5 rounded-full bg-slate-900/15 px-2 py-0.5 text-xs font-black">2×</span>}
+          </p>
 
           <div className="mt-4">
             <div className="h-1.5 overflow-hidden rounded-full bg-slate-900/20">
@@ -229,12 +256,12 @@ export function LiveTab({
       {activeScheduleItem && teams.length > 0 && (
         <section>
           <h3 className="mb-2.5 text-xs font-bold uppercase tracking-widest text-slate-500">
-            Tap a team to award points
+            Tap teams in finishing order
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {teams.map((team) => {
               const textColor = contrastText(team.color);
-              const awarded = awardedTeamIds.has(team.id);
+              const place = placeByTeam.get(team.id);
               const chipBg = textColor === '#ffffff' ? 'rgba(255,255,255,0.25)' : 'rgba(15,23,42,0.14)';
               return (
                 <button
@@ -249,7 +276,7 @@ export function LiveTab({
                       className="flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-black"
                       style={{ backgroundColor: chipBg }}
                     >
-                      {awarded ? <CheckIcon className="h-3.5 w-3.5" /> : `+${activeScheduleItem.points}`}
+                      {place ? placeLabel(place) : `+${activeScheduleItem.points * multiplier}`}
                     </span>
                   </div>
                   <span className="text-sm font-medium opacity-75">{team.total} pts</span>

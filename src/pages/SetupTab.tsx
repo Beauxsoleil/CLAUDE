@@ -3,12 +3,14 @@ import type { EventPreset } from '../types';
 import type { TeamWithTotal } from '../hooks/useCampData';
 import { TEAM_COLORS, contrastText } from '../lib/colors';
 import { useConfirm } from '../components/ConfirmSheet';
-import { XIcon } from '../components/icons';
+import { XIcon, ZapIcon } from '../components/icons';
+import { formatDayKey, todayKey } from '../lib/dates';
 import {
   addPreset,
   addTeam,
   deletePreset,
   deleteTeam,
+  setDoublePointDay,
   updateTeam,
 } from '../lib/campRepo';
 
@@ -17,12 +19,14 @@ export function SetupTab({
   campName,
   teams,
   presets,
+  doubleDays,
   onLeave,
 }: {
   campId: string;
   campName: string;
   teams: TeamWithTotal[];
   presets: EventPreset[];
+  doubleDays: Set<string>;
   onLeave: () => void;
 }) {
   const confirm = useConfirm();
@@ -32,6 +36,11 @@ export function SetupTab({
   const [presetPoints, setPresetPoints] = useState(10);
   const [presetDuration, setPresetDuration] = useState(30);
   const [copied, setCopied] = useState(false);
+  const [customDay, setCustomDay] = useState('');
+
+  const today = todayKey();
+  const isTodayDouble = doubleDays.has(today);
+  const otherDoubleDays = [...doubleDays].filter((d) => d !== today).sort();
 
   const defaultColor = TEAM_COLORS[teams.length % TEAM_COLORS.length];
   const pickedColor = teamColor ?? defaultColor;
@@ -117,6 +126,81 @@ export function SetupTab({
         </button>
         <p className="mt-2 h-4 text-xs text-amber-300">{copied ? 'Copied to clipboard!' : 'Tap to copy'}</p>
       </div>
+
+      {/* Double point days */}
+      <section>
+        <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">
+          Double point days
+        </h2>
+        <p className="mb-2.5 text-sm text-slate-500">
+          Everything awarded on a 2× day counts double — flip it on or off anytime, even after
+          points were given, and totals update everywhere instantly.
+        </p>
+        <div className="flex flex-col gap-2 rounded-2xl bg-slate-900 p-3 ring-1 ring-white/5">
+          <button
+            onClick={() => setDoublePointDay(campId, today, !isTodayDouble)}
+            className={`flex items-center justify-between rounded-xl px-4 py-3 font-bold transition active:scale-[0.98] ${
+              isTodayDouble
+                ? 'bg-gradient-to-r from-violet-500/25 to-fuchsia-500/25 text-fuchsia-200 ring-1 ring-fuchsia-400/40'
+                : 'bg-slate-800 text-slate-300'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <ZapIcon className={`h-4 w-4 ${isTodayDouble ? 'text-fuchsia-300' : 'text-slate-500'}`} />
+              Today · {formatDayKey(today)}
+            </span>
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-black ${
+                isTodayDouble ? 'bg-fuchsia-400 text-slate-900' : 'bg-slate-700 text-slate-400'
+              }`}
+            >
+              {isTodayDouble ? '2× ON' : 'OFF'}
+            </span>
+          </button>
+
+          <div className="flex gap-2">
+            <input
+              type="date"
+              value={customDay}
+              onChange={(e) => setCustomDay(e.target.value)}
+              className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-slate-100 outline-none focus:border-amber-400"
+            />
+            <button
+              onClick={() => {
+                if (customDay) {
+                  setDoublePointDay(campId, customDay, true);
+                  setCustomDay('');
+                }
+              }}
+              disabled={!customDay || doubleDays.has(customDay)}
+              className="shrink-0 rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-bold text-slate-100 transition active:scale-95 disabled:opacity-40"
+            >
+              Make 2×
+            </button>
+          </div>
+
+          {otherDoubleDays.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {otherDoubleDays.map((d) => (
+                <span
+                  key={d}
+                  className="flex items-center gap-1.5 rounded-full bg-fuchsia-400/10 px-3 py-1.5 text-xs font-bold text-fuchsia-200 ring-1 ring-fuchsia-400/30"
+                >
+                  <ZapIcon className="h-3 w-3" />
+                  {formatDayKey(d)}
+                  <button
+                    onClick={() => setDoublePointDay(campId, d, false)}
+                    aria-label={`Remove double points on ${d}`}
+                    className="ml-0.5 text-fuchsia-300/60 active:text-fuchsia-200"
+                  >
+                    <XIcon className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Teams */}
       <section>

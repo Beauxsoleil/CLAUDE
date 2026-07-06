@@ -24,11 +24,22 @@ like a regular app: its own icon, full screen, no browser chrome.
   one-off custom events. Drag to reorder at any time; mark one "active" to
   drive the Live tab, mark it "done" when it wraps up. Order is fluid, not
   clock-locked, so shuffling the day around is just a drag, not a rebuild.
-- **Live tab** — shows the active event and lets you tap any team to award
-  its preset points instantly, plus a floating "+ Extra points" button for
-  ad-hoc awards (positive or negative) with a reason, and a live leaderboard.
-- **History** — a running, deletable log of every point transaction, so you
-  can audit or undo an accidental award.
+- **Live tab** — shows the active event and lets you tap teams *in finishing
+  order* to award preset points (1st tap = 1st place 🥇), plus a floating
+  "+ Extra points" button for ad-hoc awards/deductions with a reason, and a
+  live leaderboard.
+- **Placements** — each event remembers who finished 1st/2nd/3rd (derived
+  from award order), shown on the team tiles while the event runs and on the
+  Schedule tab afterward.
+- **Double point days** — mark any day 2× in Setup (today with one tap, or
+  any date). Every transaction is timestamped, so flipping a day on or off
+  retroactively doubles/undoubles everything awarded that day, everywhere,
+  instantly.
+- **History** — a running, deletable log of every point transaction (with 2×
+  badges on double days), so you can audit or undo an accidental award.
+- **Offline-ready** — points awarded without signal apply to the scoreboard
+  immediately, an "Offline" banner shows in the header, and everything syncs
+  automatically when connection returns.
 
 ## Tech stack
 

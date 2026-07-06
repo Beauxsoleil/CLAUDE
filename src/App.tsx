@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCampSession } from './hooks/useCampSession';
 import { useCampData } from './hooks/useCampData';
 import { CampGate } from './components/CampGate';
@@ -14,7 +14,23 @@ import {
   SlidersIcon,
   TentIcon,
   TrophyIcon,
+  WifiOffIcon,
 } from './components/icons';
+
+function useOnline() {
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+  return online;
+}
 
 export type Tab = 'live' | 'schedule' | 'setup' | 'log';
 
@@ -67,6 +83,7 @@ function CampApp({
   onLeave: () => void;
 }) {
   const data = useCampData(campId);
+  const online = useOnline();
   const [codeCopied, setCodeCopied] = useState(false);
 
   async function copyCode() {
@@ -98,6 +115,12 @@ function CampApp({
             {codeCopied ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5 opacity-60" />}
           </button>
         </div>
+        {!online && (
+          <div className="flex items-center justify-center gap-1.5 bg-amber-500/15 py-1 text-xs font-semibold text-amber-300">
+            <WifiOffIcon className="h-3.5 w-3.5" />
+            Offline — points still count and will sync when you're back
+          </div>
+        )}
       </header>
 
       <main className="relative mx-auto max-w-lg">
@@ -106,14 +129,21 @@ function CampApp({
             campId={campId}
             teams={data.teamsWithTotals}
             schedule={data.schedule}
-            transactions={data.transactions}
             activeScheduleItem={data.activeScheduleItem}
             nextScheduleItem={data.nextScheduleItem}
+            isTodayDouble={data.isTodayDouble}
+            eventPlacements={data.eventPlacements}
             onNavigate={setTab}
           />
         )}
         {tab === 'schedule' && (
-          <ScheduleTab campId={campId} schedule={data.schedule} presets={data.presets} />
+          <ScheduleTab
+            campId={campId}
+            schedule={data.schedule}
+            presets={data.presets}
+            teams={data.teams}
+            eventPlacements={data.eventPlacements}
+          />
         )}
         {tab === 'setup' && (
           <SetupTab
@@ -121,11 +151,17 @@ function CampApp({
             campName={campName}
             teams={data.teamsWithTotals}
             presets={data.presets}
+            doubleDays={data.doubleDays}
             onLeave={onLeave}
           />
         )}
         {tab === 'log' && (
-          <LogTab campId={campId} teams={data.teams} transactions={data.transactions} />
+          <LogTab
+            campId={campId}
+            teams={data.teams}
+            transactions={data.transactions}
+            multiplierFor={data.multiplierFor}
+          />
         )}
       </main>
 

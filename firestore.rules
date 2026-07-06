@@ -18,7 +18,11 @@ service cloud.firestore {
                     && request.resource.data.name is string
                     && request.resource.data.name.size() > 0
                     && request.resource.data.name.size() < 200;
-      allow update, delete: if false;
+      // Only the double-point-day list may change after creation.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+                      .hasOnly(['doublePointDays'])
+                    && request.resource.data.doublePointDays is list;
+      allow delete: if false;
 
       match /teams/{teamId} {
         allow read, write: if true;
