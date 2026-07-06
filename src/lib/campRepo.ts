@@ -183,8 +183,9 @@ export async function awardPoints(
     type: 'event' | 'manual';
     scheduleItemId: string | null;
   },
-) {
-  await addDoc(transactionsCol(campId), { ...input, createdAt: Date.now() });
+): Promise<string> {
+  const ref = await addDoc(transactionsCol(campId), { ...input, createdAt: Date.now() });
+  return ref.id;
 }
 
 export async function deleteTransaction(campId: string, txId: string) {

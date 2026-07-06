@@ -26,7 +26,13 @@ export function useCampSession() {
 
   const join = useCallback(async (code: string) => {
     setError(null);
-    const found = await campExists(code);
+    let found: Camp | null = null;
+    try {
+      found = await campExists(code);
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.');
+      return false;
+    }
     if (!found) {
       setError('No camp found with that code. Double-check it and try again.');
       return false;
@@ -38,11 +44,16 @@ export function useCampSession() {
 
   const create = useCallback(async (name: string) => {
     setError(null);
-    const id = await createCamp(name.trim() || 'Camp');
-    const newCamp: Camp = { id, name: name.trim() || 'Camp', createdAt: Date.now() };
-    localStorage.setItem(STORAGE_KEY, id);
-    setCamp(newCamp);
-    return newCamp;
+    try {
+      const id = await createCamp(name.trim() || 'Camp');
+      const newCamp: Camp = { id, name: name.trim() || 'Camp', createdAt: Date.now() };
+      localStorage.setItem(STORAGE_KEY, id);
+      setCamp(newCamp);
+      return newCamp;
+    } catch {
+      setError('Could not create the camp. Check your connection and try again.');
+      return null;
+    }
   }, []);
 
   const leave = useCallback(() => {

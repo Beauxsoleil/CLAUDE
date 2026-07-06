@@ -1,16 +1,14 @@
 import { useState } from 'react';
-import type { EventPreset, Team } from '../types';
+import type { EventPreset } from '../types';
 import type { TeamWithTotal } from '../hooks/useCampData';
+import { TEAM_COLORS, contrastText } from '../lib/colors';
 import {
   addPreset,
   addTeam,
   deletePreset,
   deleteTeam,
+  updateTeam,
 } from '../lib/campRepo';
-
-const TEAM_COLORS = [
-  '#f59e0b', '#ef4444', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#14b8a6', '#f97316',
-];
 
 export function SetupTab({
   campId,
@@ -21,29 +19,55 @@ export function SetupTab({
 }: {
   campId: string;
   campName: string;
-  teams: TeamWithTotal[] | Team[];
+  teams: TeamWithTotal[];
   presets: EventPreset[];
   onLeave: () => void;
 }) {
   const [teamName, setTeamName] = useState('');
+  const [teamColor, setTeamColor] = useState<string | null>(null);
   const [presetName, setPresetName] = useState('');
   const [presetPoints, setPresetPoints] = useState(10);
   const [presetDuration, setPresetDuration] = useState(30);
   const [copied, setCopied] = useState(false);
 
+  const defaultColor = TEAM_COLORS[teams.length % TEAM_COLORS.length];
+  const pickedColor = teamColor ?? defaultColor;
+
   async function handleAddTeam(e: React.FormEvent) {
     e.preventDefault();
-    if (!teamName.trim()) return;
-    const color = TEAM_COLORS[teams.length % TEAM_COLORS.length];
-    await addTeam(campId, teamName.trim(), color);
+    const name = teamName.trim();
+    if (!name) return;
+    // Clear immediately so quick back-to-back entries don't get wiped
+    // by a state update landing after the user starts typing the next name.
     setTeamName('');
+    setTeamColor(null);
+    await addTeam(campId, name, pickedColor);
+  }
+
+  function cycleTeamColor(teamId: string, current: string) {
+    const idx = TEAM_COLORS.indexOf(current);
+    const next = TEAM_COLORS[(idx + 1) % TEAM_COLORS.length];
+    void updateTeam(campId, teamId, { color: next });
+  }
+
+  async function handleDeleteTeam(teamId: string, name: string) {
+    if (window.confirm(`Remove ${name}? Their point history stays in the log.`)) {
+      await deleteTeam(campId, teamId);
+    }
   }
 
   async function handleAddPreset(e: React.FormEvent) {
     e.preventDefault();
-    if (!presetName.trim()) return;
-    await addPreset(campId, presetName.trim(), presetPoints, presetDuration);
+    const name = presetName.trim();
+    if (!name) return;
     setPresetName('');
+    await addPreset(campId, name, presetPoints, presetDuration);
+  }
+
+  async function handleDeletePreset(presetId: string, name: string) {
+    if (window.confirm(`Delete the "${name}" preset?`)) {
+      await deletePreset(campId, presetId);
+    }
   }
 
   async function copyCode() {
@@ -56,96 +80,144 @@ export function SetupTab({
     }
   }
 
+  function handleLeave() {
+    if (window.confirm('Leave this camp on this device? Your data stays saved — rejoin anytime with the camp code.')) {
+      onLeave();
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-6 p-4 pb-28">
-      <div className="rounded-2xl bg-slate-900 p-5 text-center">
-        <p className="text-sm text-slate-400">{campName}</p>
-        <p className="text-xs uppercase tracking-wide text-slate-500">Camp code — share with other devices</p>
+    <div className="flex flex-col gap-6 p-4 pb-32">
+      {/* Camp code card */}
+      <div className="rounded-3xl bg-slate-900 p-5 text-center ring-1 ring-white/5">
+        <p className="font-bold text-slate-200">{campName}</p>
+        <p className="mt-0.5 text-xs uppercase tracking-widest text-slate-500">
+          Camp code · share with other devices
+        </p>
         <button
           onClick={copyCode}
-          className="mt-2 rounded-xl border border-amber-400/50 bg-amber-400/10 px-6 py-3 text-3xl font-black tracking-[0.3em] text-amber-300"
+          className="mt-3 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-6 py-3 text-3xl font-black tracking-[0.3em] text-amber-300 transition active:scale-[0.97]"
         >
           {campId}
         </button>
-        {copied && <p className="mt-1 text-xs text-amber-300">Copied!</p>}
+        <p className="mt-2 h-4 text-xs text-amber-300">{copied ? 'Copied to clipboard!' : 'Tap to copy'}</p>
       </div>
 
+      {/* Teams */}
       <section>
-        <h2 className="mb-2 text-lg font-bold text-slate-100">Teams</h2>
-        <form onSubmit={handleAddTeam} className="mb-3 flex gap-2">
-          <input
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
-            placeholder="Team name"
-            className="flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100"
-          />
-          <button type="submit" className="rounded-xl bg-amber-400 px-4 py-3 font-semibold text-slate-900">
-            Add
-          </button>
+        <h2 className="mb-2.5 text-xs font-bold uppercase tracking-widest text-slate-500">Teams</h2>
+        <form onSubmit={handleAddTeam} className="mb-3 rounded-2xl bg-slate-900 p-3 ring-1 ring-white/5">
+          <div className="flex gap-2">
+            <input
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              placeholder="Team name"
+              className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+            />
+            <button
+              type="submit"
+              disabled={!teamName.trim()}
+              className="shrink-0 rounded-xl px-5 py-3 font-bold transition active:scale-95 disabled:opacity-40"
+              style={{ backgroundColor: pickedColor, color: contrastText(pickedColor) }}
+            >
+              Add
+            </button>
+          </div>
+          <div className="mt-2.5 flex justify-between px-1">
+            {TEAM_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setTeamColor(c)}
+                aria-label={`Team color ${c}`}
+                className={`h-7 w-7 rounded-full transition active:scale-90 ${
+                  pickedColor === c ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900' : ''
+                }`}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
         </form>
         <div className="flex flex-col gap-2">
           {teams.map((team) => (
-            <div key={team.id} className="flex items-center gap-3 rounded-xl bg-slate-900 px-4 py-3">
-              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: team.color }} />
-              <span className="flex-1 font-medium text-slate-100">{team.name}</span>
+            <div key={team.id} className="flex items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 ring-1 ring-white/5">
               <button
-                onClick={() => deleteTeam(campId, team.id)}
-                className="text-slate-500"
+                onClick={() => cycleTeamColor(team.id, team.color)}
+                aria-label="Change team color"
+                className="h-6 w-6 shrink-0 rounded-full transition active:scale-90"
+                style={{ backgroundColor: team.color }}
+              />
+              <span className="flex-1 truncate font-semibold text-slate-100">{team.name}</span>
+              <span className="text-sm tabular-nums text-slate-500">{team.total} pts</span>
+              <button
+                onClick={() => handleDeleteTeam(team.id, team.name)}
+                className="text-slate-600 transition active:text-red-400"
                 aria-label="Delete team"
               >
-                🗑
+                ✕
               </button>
             </div>
           ))}
-          {teams.length === 0 && <p className="text-sm text-slate-500">No teams yet.</p>}
+          {teams.length === 0 && (
+            <p className="text-sm text-slate-500">No teams yet — add your first one above. Tap a team's dot anytime to change its color.</p>
+          )}
         </div>
       </section>
 
+      {/* Event presets */}
       <section>
-        <h2 className="mb-2 text-lg font-bold text-slate-100">Event Presets</h2>
-        <p className="mb-2 text-sm text-slate-500">
-          Presets let you award consistent points for common events with one tap during the day.
+        <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">Event presets</h2>
+        <p className="mb-2.5 text-sm text-slate-500">
+          Reusable events with fixed points — award them in one tap during the day.
         </p>
-        <form onSubmit={handleAddPreset} className="mb-3 flex flex-col gap-2">
+        <form onSubmit={handleAddPreset} className="mb-3 flex flex-col gap-2 rounded-2xl bg-slate-900 p-3 ring-1 ring-white/5">
           <input
             value={presetName}
             onChange={(e) => setPresetName(e.target.value)}
             placeholder="Preset name (e.g. Cabin Inspection)"
-            className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100"
+            className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
           />
           <div className="flex gap-2">
-            <input
-              type="number"
-              value={presetPoints}
-              onChange={(e) => setPresetPoints(Number(e.target.value))}
-              placeholder="Points"
-              className="w-1/2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100"
-            />
-            <input
-              type="number"
-              value={presetDuration}
-              onChange={(e) => setPresetDuration(Number(e.target.value))}
-              placeholder="Duration (min)"
-              className="w-1/2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100"
-            />
+            <label className="flex-1 text-xs text-slate-500">
+              Points
+              <input
+                type="number"
+                value={presetPoints}
+                onChange={(e) => setPresetPoints(Number(e.target.value))}
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+              />
+            </label>
+            <label className="flex-1 text-xs text-slate-500">
+              ~Duration (min)
+              <input
+                type="number"
+                value={presetDuration}
+                onChange={(e) => setPresetDuration(Number(e.target.value))}
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+              />
+            </label>
           </div>
-          <button type="submit" className="rounded-xl bg-amber-400 px-4 py-3 font-semibold text-slate-900">
+          <button
+            type="submit"
+            disabled={!presetName.trim()}
+            className="rounded-xl bg-amber-400 px-4 py-3 font-bold text-slate-900 transition active:scale-[0.98] disabled:opacity-40"
+          >
             Add preset
           </button>
         </form>
         <div className="flex flex-col gap-2">
           {presets.map((preset) => (
-            <div key={preset.id} className="flex items-center gap-3 rounded-xl bg-slate-900 px-4 py-3">
-              <span className="flex-1 font-medium text-slate-100">{preset.name}</span>
-              <span className="text-sm text-slate-400">
-                {preset.points} pts · ~{preset.durationMin} min
+            <div key={preset.id} className="flex items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 ring-1 ring-white/5">
+              <span className="min-w-0 flex-1 truncate font-semibold text-slate-100">{preset.name}</span>
+              <span className="shrink-0 text-sm text-slate-500">
+                {preset.points} pts · ~{preset.durationMin}m
               </span>
               <button
-                onClick={() => deletePreset(campId, preset.id)}
-                className="text-slate-500"
+                onClick={() => handleDeletePreset(preset.id, preset.name)}
+                className="text-slate-600 transition active:text-red-400"
                 aria-label="Delete preset"
               >
-                🗑
+                ✕
               </button>
             </div>
           ))}
@@ -153,7 +225,10 @@ export function SetupTab({
         </div>
       </section>
 
-      <button onClick={onLeave} className="mt-4 rounded-xl border border-slate-700 px-4 py-3 text-slate-400">
+      <button
+        onClick={handleLeave}
+        className="mt-2 rounded-2xl border border-slate-800 px-4 py-3 text-slate-500 transition active:bg-slate-900"
+      >
         Leave this camp
       </button>
     </div>

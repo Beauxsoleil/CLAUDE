@@ -54,11 +54,11 @@ export function ScheduleItemModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
-        className="w-full max-w-md rounded-t-3xl bg-slate-900 p-5 pb-8"
+        className="w-full max-w-md rounded-t-3xl bg-slate-900 p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ring-1 ring-white/10"
       >
         <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-700" />
         <h2 className="mb-4 text-lg font-bold text-slate-100">

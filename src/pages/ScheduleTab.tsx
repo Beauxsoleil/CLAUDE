@@ -61,32 +61,39 @@ export function ScheduleTab({
     });
   }
 
-  const totalMinutes = schedule
-    .filter((s) => s.status !== 'done')
-    .reduce((sum, s) => sum + s.durationMin, 0);
+  const remaining = schedule.filter((s) => s.status !== 'done');
+  const totalMinutes = remaining.reduce((sum, s) => sum + s.durationMin, 0);
+  const doneCount = schedule.length - remaining.length;
 
   return (
-    <div className="flex flex-col gap-4 p-4 pb-28">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="flex flex-col gap-4 p-4 pb-32">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-lg font-bold text-slate-100">Today's Schedule</h2>
-          <p className="text-sm text-slate-500">~{totalMinutes} min remaining · drag to reorder</p>
+          <p className="text-sm text-slate-500">
+            {schedule.length > 0
+              ? `${doneCount}/${schedule.length} done · ~${totalMinutes} min left · drag to reorder`
+              : 'Plan the day, stay flexible'}
+          </p>
         </div>
         <button
           onClick={() => {
             setEditing(null);
             setShowModal(true);
           }}
-          className="rounded-xl bg-amber-400 px-4 py-2 font-semibold text-slate-900"
+          className="shrink-0 rounded-2xl bg-amber-400 px-4 py-2.5 font-bold text-slate-900 transition active:scale-95"
         >
-          + Add event
+          + Add
         </button>
       </div>
 
       {schedule.length === 0 && (
-        <p className="rounded-xl border border-dashed border-slate-700 p-6 text-center text-slate-500">
-          No events yet. Add your first event to build the day's plan.
-        </p>
+        <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center">
+          <p className="text-3xl">🗓️</p>
+          <p className="mt-2 text-sm text-slate-500">
+            No events yet. Add your first event to build the day's plan — you can reorder anytime.
+          </p>
+        </div>
       )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
