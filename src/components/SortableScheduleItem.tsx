@@ -1,6 +1,8 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { ScheduleItem } from '../types';
+import { useConfirm } from './ConfirmSheet';
+import { CheckIcon, GripIcon, PencilIcon, XIcon } from './icons';
 
 const STATUS_STYLES: Record<ScheduleItem['status'], string> = {
   pending: 'bg-slate-900 ring-1 ring-white/5',
@@ -21,6 +23,7 @@ export function SortableScheduleItem({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const confirm = useConfirm();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -32,23 +35,29 @@ export function SortableScheduleItem({
     zIndex: isDragging ? 10 : undefined,
   };
 
-  function handleDelete() {
-    if (window.confirm(`Remove "${item.name}" from the schedule?`)) onDelete();
+  async function handleDelete() {
+    const ok = await confirm({
+      title: `Remove "${item.name}"?`,
+      message: 'It comes off the schedule. Points already awarded for it are kept.',
+      confirmLabel: 'Remove event',
+      danger: true,
+    });
+    if (ok) onDelete();
   }
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 rounded-2xl p-3 ${STATUS_STYLES[item.status]}`}
+      className={`flex items-center gap-1.5 rounded-2xl p-3 ${STATUS_STYLES[item.status]}`}
     >
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab touch-none select-none px-1.5 py-2 text-lg text-slate-600 active:cursor-grabbing"
+        className="cursor-grab touch-none select-none px-1 py-2 text-slate-600 active:cursor-grabbing"
         aria-label="Drag to reorder"
       >
-        ⠿
+        <GripIcon className="h-5 w-5" />
       </button>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -60,8 +69,9 @@ export function SortableScheduleItem({
             </span>
           )}
           {item.status === 'done' && (
-            <span className="shrink-0 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-black text-slate-400">
-              ✓ DONE
+            <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-black text-slate-400">
+              <CheckIcon className="h-2.5 w-2.5" />
+              DONE
             </span>
           )}
         </div>
@@ -69,7 +79,7 @@ export function SortableScheduleItem({
           {item.points} pts · ~{item.durationMin} min
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1">
         {item.status === 'pending' && (
           <button
             onClick={onStart}
@@ -88,17 +98,17 @@ export function SortableScheduleItem({
         )}
         <button
           onClick={onEdit}
-          className="px-1.5 py-2 text-slate-500 transition active:text-slate-200"
+          className="p-1.5 text-slate-500 transition active:text-slate-200"
           aria-label="Edit"
         >
-          ✎
+          <PencilIcon className="h-4 w-4" />
         </button>
         <button
           onClick={handleDelete}
-          className="px-1.5 py-2 text-slate-600 transition active:text-red-400"
+          className="p-1.5 text-slate-600 transition active:text-red-400"
           aria-label="Delete"
         >
-          ✕
+          <XIcon className="h-4 w-4" />
         </button>
       </div>
     </div>

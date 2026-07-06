@@ -65,22 +65,35 @@ export function ScheduleItemModal({
           {initial ? 'Edit event' : 'Add event to schedule'}
         </h2>
 
-        {presets.length > 0 && (
-          <label className="mb-3 block text-sm text-slate-400">
-            Preset
-            <select
-              value={presetId}
-              onChange={(e) => applyPreset(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100"
-            >
-              <option value="custom">Custom event</option>
+        {presets.length > 0 && !initial && (
+          <div className="mb-4">
+            <p className="mb-1.5 text-sm text-slate-400">Start from a preset</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => applyPreset('custom')}
+                className={`rounded-full px-3.5 py-2 text-sm font-bold transition ${
+                  presetId === 'custom'
+                    ? 'bg-amber-400 text-slate-900'
+                    : 'bg-slate-800 text-slate-300'
+                }`}
+              >
+                Custom
+              </button>
               {presets.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.points} pts)
-                </option>
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => applyPreset(p.id)}
+                  className={`rounded-full px-3.5 py-2 text-sm font-bold transition ${
+                    presetId === p.id ? 'bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  {p.name} · {p.points}
+                </button>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
         )}
 
         <label className="mb-3 block text-sm text-slate-400">
@@ -89,7 +102,7 @@ export function ScheduleItemModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Capture the Flag"
-            className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100"
+            className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
           />
         </label>
 
@@ -97,19 +110,19 @@ export function ScheduleItemModal({
           <label className="flex-1 text-sm text-slate-400">
             Points
             <input
-              type="number"
+              type="number" inputMode="numeric"
               value={points}
               onChange={(e) => setPoints(Number(e.target.value))}
-              className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100"
+              className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
             />
           </label>
           <label className="flex-1 text-sm text-slate-400">
             ~Duration (min)
             <input
-              type="number"
+              type="number" inputMode="numeric"
               value={durationMin}
               onChange={(e) => setDurationMin(Number(e.target.value))}
-              className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100"
+              className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
             />
           </label>
         </div>
@@ -118,14 +131,14 @@ export function ScheduleItemModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-xl border border-slate-700 px-4 py-3 font-semibold text-slate-100"
+            className="flex-1 rounded-2xl bg-slate-800 px-4 py-3.5 font-bold text-slate-300 transition active:scale-[0.98]"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={busy || !name.trim()}
-            className="flex-1 rounded-xl bg-amber-400 px-4 py-3 font-semibold text-slate-900 disabled:opacity-50"
+            className="flex-1 rounded-2xl bg-amber-400 px-4 py-3.5 font-bold text-slate-900 transition active:scale-[0.98] disabled:opacity-40"
           >
             {busy ? 'Saving…' : initial ? 'Save changes' : 'Add to schedule'}
           </button>

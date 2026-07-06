@@ -6,14 +6,23 @@ import { LiveTab } from './pages/LiveTab';
 import { ScheduleTab } from './pages/ScheduleTab';
 import { SetupTab } from './pages/SetupTab';
 import { LogTab } from './pages/LogTab';
+import {
+  CalendarIcon,
+  CheckIcon,
+  CopyIcon,
+  HistoryIcon,
+  SlidersIcon,
+  TentIcon,
+  TrophyIcon,
+} from './components/icons';
 
-type Tab = 'live' | 'schedule' | 'setup' | 'log';
+export type Tab = 'live' | 'schedule' | 'setup' | 'log';
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'live', label: 'Live', icon: '🏆' },
-  { id: 'schedule', label: 'Schedule', icon: '🗓️' },
-  { id: 'setup', label: 'Setup', icon: '⚙️' },
-  { id: 'log', label: 'History', icon: '📜' },
+const TABS: { id: Tab; label: string; Icon: typeof TrophyIcon }[] = [
+  { id: 'live', label: 'Live', Icon: TrophyIcon },
+  { id: 'schedule', label: 'Schedule', Icon: CalendarIcon },
+  { id: 'setup', label: 'Setup', Icon: SlidersIcon },
+  { id: 'log', label: 'History', Icon: HistoryIcon },
 ];
 
 function App() {
@@ -22,8 +31,8 @@ function App() {
 
   if (session.loading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-950 text-slate-400">
-        <span className="text-4xl">🏕️</span>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-950 text-slate-500">
+        <TentIcon className="h-10 w-10 text-amber-400" />
         Loading…
       </div>
     );
@@ -58,16 +67,40 @@ function CampApp({
   onLeave: () => void;
 }) {
   const data = useCampData(campId);
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(campId);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 1500);
+    } catch {
+      // clipboard API unavailable; ignore
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
+      <div
+        className="pointer-events-none fixed inset-x-0 top-0 z-0 h-72"
+        style={{ background: 'radial-gradient(ellipse 90% 100% at 50% 0%, rgba(251,191,36,0.06), transparent)' }}
+      />
+
       <header className="sticky top-0 z-30 border-b border-white/5 bg-slate-950/90 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="px-4 py-3">
-          <h1 className="text-center font-bold tracking-tight">{campName}</h1>
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3">
+          <h1 className="min-w-0 truncate text-lg font-bold tracking-tight">{campName}</h1>
+          <button
+            onClick={copyCode}
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-bold tracking-widest text-amber-300 ring-1 ring-white/10 transition active:scale-95"
+            aria-label="Copy camp code"
+          >
+            {campId}
+            {codeCopied ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5 opacity-60" />}
+          </button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-lg">
+      <main className="relative mx-auto max-w-lg">
         {tab === 'live' && (
           <LiveTab
             campId={campId}
@@ -76,6 +109,7 @@ function CampApp({
             transactions={data.transactions}
             activeScheduleItem={data.activeScheduleItem}
             nextScheduleItem={data.nextScheduleItem}
+            onNavigate={setTab}
           />
         )}
         {tab === 'schedule' && (
@@ -97,24 +131,24 @@ function CampApp({
 
       <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/5 bg-slate-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur">
         <div className="mx-auto flex max-w-lg">
-          {TABS.map((t) => {
-            const active = tab === t.id;
+          {TABS.map(({ id, label, Icon }) => {
+            const active = tab === id;
             return (
               <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
+                key={id}
+                onClick={() => setTab(id)}
                 className={`flex flex-1 select-none flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition ${
                   active ? 'text-amber-300' : 'text-slate-500'
                 }`}
               >
                 <span
-                  className={`flex h-7 items-center rounded-full px-4 text-base leading-none transition ${
-                    active ? 'bg-amber-400/15' : 'opacity-40 grayscale'
+                  className={`flex h-7 items-center justify-center rounded-full px-4 transition ${
+                    active ? 'bg-amber-400/15' : ''
                   }`}
                 >
-                  {t.icon}
+                  <Icon className="h-5 w-5" />
                 </span>
-                {t.label}
+                {label}
               </button>
             );
           })}

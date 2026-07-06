@@ -99,7 +99,7 @@ export function ExtraPointsModal({
             −
           </button>
           <input
-            type="number"
+            type="number" inputMode="numeric"
             min={0}
             value={amount}
             onChange={(e) => setAmount(Math.abs(Number(e.target.value)))}

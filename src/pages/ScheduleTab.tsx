@@ -11,6 +11,7 @@ import {
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import type { EventPreset, ScheduleItem } from '../types';
 import { SortableScheduleItem } from '../components/SortableScheduleItem';
+import { PlusIcon } from '../components/icons';
 import { ScheduleItemModal, type ScheduleItemFormValue } from '../components/ScheduleItemModal';
 import {
   addScheduleItem,
@@ -81,17 +82,18 @@ export function ScheduleTab({
             setEditing(null);
             setShowModal(true);
           }}
-          className="shrink-0 rounded-2xl bg-amber-400 px-4 py-2.5 font-bold text-slate-900 transition active:scale-95"
+          className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-amber-400 px-4 py-2.5 font-bold text-slate-900 transition active:scale-95"
         >
-          + Add
+          <PlusIcon className="h-4 w-4" />
+          Add
         </button>
       </div>
 
       {schedule.length === 0 && (
         <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center">
-          <p className="text-3xl">🗓️</p>
-          <p className="mt-2 text-sm text-slate-500">
-            No events yet. Add your first event to build the day's plan — you can reorder anytime.
+          <p className="text-sm text-slate-500">
+            No events yet. Add your first event to build the day's plan — you can drag to reorder anytime,
+            so it's easy to shuffle the day when plans change.
           </p>
         </div>
       )}

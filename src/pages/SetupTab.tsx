@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { EventPreset } from '../types';
 import type { TeamWithTotal } from '../hooks/useCampData';
 import { TEAM_COLORS, contrastText } from '../lib/colors';
+import { useConfirm } from '../components/ConfirmSheet';
+import { XIcon } from '../components/icons';
 import {
   addPreset,
   addTeam,
@@ -23,6 +25,7 @@ export function SetupTab({
   presets: EventPreset[];
   onLeave: () => void;
 }) {
+  const confirm = useConfirm();
   const [teamName, setTeamName] = useState('');
   const [teamColor, setTeamColor] = useState<string | null>(null);
   const [presetName, setPresetName] = useState('');
@@ -51,9 +54,13 @@ export function SetupTab({
   }
 
   async function handleDeleteTeam(teamId: string, name: string) {
-    if (window.confirm(`Remove ${name}? Their point history stays in the log.`)) {
-      await deleteTeam(campId, teamId);
-    }
+    const ok = await confirm({
+      title: `Remove ${name}?`,
+      message: 'Their point history stays in the log, but they disappear from the leaderboard.',
+      confirmLabel: 'Remove team',
+      danger: true,
+    });
+    if (ok) await deleteTeam(campId, teamId);
   }
 
   async function handleAddPreset(e: React.FormEvent) {
@@ -65,9 +72,13 @@ export function SetupTab({
   }
 
   async function handleDeletePreset(presetId: string, name: string) {
-    if (window.confirm(`Delete the "${name}" preset?`)) {
-      await deletePreset(campId, presetId);
-    }
+    const ok = await confirm({
+      title: `Delete "${name}"?`,
+      message: 'Events already on the schedule keep their points — only the reusable preset goes away.',
+      confirmLabel: 'Delete preset',
+      danger: true,
+    });
+    if (ok) await deletePreset(campId, presetId);
   }
 
   async function copyCode() {
@@ -80,10 +91,14 @@ export function SetupTab({
     }
   }
 
-  function handleLeave() {
-    if (window.confirm('Leave this camp on this device? Your data stays saved — rejoin anytime with the camp code.')) {
-      onLeave();
-    }
+  async function handleLeave() {
+    const ok = await confirm({
+      title: 'Leave this camp?',
+      message: `Only this device disconnects — all the data stays saved. Rejoin anytime with the code ${campId}.`,
+      confirmLabel: 'Leave camp',
+      danger: true,
+    });
+    if (ok) onLeave();
   }
 
   return (
@@ -151,10 +166,10 @@ export function SetupTab({
               <span className="text-sm tabular-nums text-slate-500">{team.total} pts</span>
               <button
                 onClick={() => handleDeleteTeam(team.id, team.name)}
-                className="text-slate-600 transition active:text-red-400"
+                className="p-1 text-slate-600 transition active:text-red-400"
                 aria-label="Delete team"
               >
-                ✕
+                <XIcon className="h-4 w-4" />
               </button>
             </div>
           ))}
@@ -181,7 +196,7 @@ export function SetupTab({
             <label className="flex-1 text-xs text-slate-500">
               Points
               <input
-                type="number"
+                type="number" inputMode="numeric"
                 value={presetPoints}
                 onChange={(e) => setPresetPoints(Number(e.target.value))}
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
@@ -190,7 +205,7 @@ export function SetupTab({
             <label className="flex-1 text-xs text-slate-500">
               ~Duration (min)
               <input
-                type="number"
+                type="number" inputMode="numeric"
                 value={presetDuration}
                 onChange={(e) => setPresetDuration(Number(e.target.value))}
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
@@ -214,10 +229,10 @@ export function SetupTab({
               </span>
               <button
                 onClick={() => handleDeletePreset(preset.id, preset.name)}
-                className="text-slate-600 transition active:text-red-400"
+                className="p-1 text-slate-600 transition active:text-red-400"
                 aria-label="Delete preset"
               >
-                ✕
+                <XIcon className="h-4 w-4" />
               </button>
             </div>
           ))}

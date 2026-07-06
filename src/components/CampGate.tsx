@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { useCampSession } from '../hooks/useCampSession';
+import { TentIcon } from './icons';
 
 type Session = ReturnType<typeof useCampSession>;
 
@@ -37,8 +38,8 @@ export function CampGate({ session }: { session: Session }) {
       />
       <div className="relative w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-300 to-amber-500 text-4xl shadow-xl shadow-amber-500/25">
-            🏕️
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-300 to-amber-500 shadow-xl shadow-amber-500/25">
+            <TentIcon className="h-10 w-10 text-slate-900" />
           </div>
           <h1 className="text-3xl font-black tracking-tight">Camp Points</h1>
           <p className="mt-2 text-sm text-slate-400">

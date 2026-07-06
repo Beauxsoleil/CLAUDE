@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import type { Team, Transaction } from '../types';
+import { useConfirm } from '../components/ConfirmSheet';
+import { XIcon } from '../components/icons';
 import { deleteTransaction } from '../lib/campRepo';
 
 function formatWhen(ts: number) {
@@ -23,12 +25,17 @@ export function LogTab({
   teams: Team[];
   transactions: Transaction[];
 }) {
+  const confirm = useConfirm();
   const teamColors = useMemo(() => new Map(teams.map((t) => [t.id, t.color])), [teams]);
 
   async function handleDelete(tx: Transaction) {
-    if (window.confirm(`Remove ${tx.points > 0 ? '+' : ''}${tx.points} to ${tx.teamName} (${tx.reason})? This reverses the points.`)) {
-      await deleteTransaction(campId, tx.id);
-    }
+    const ok = await confirm({
+      title: 'Reverse this entry?',
+      message: `${tx.points > 0 ? '+' : ''}${tx.points} to ${tx.teamName} for "${tx.reason}" will be removed from their total.`,
+      confirmLabel: 'Reverse it',
+      danger: true,
+    });
+    if (ok) await deleteTransaction(campId, tx.id);
   }
 
   return (
@@ -38,8 +45,9 @@ export function LogTab({
       </h2>
       {transactions.length === 0 && (
         <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center">
-          <p className="text-3xl">📜</p>
-          <p className="mt-2 text-sm text-slate-500">No points awarded yet — the full history will show up here.</p>
+          <p className="mt-2 text-sm text-slate-500">
+            No points awarded yet — every award shows up here, and any entry can be reversed with a tap.
+          </p>
         </div>
       )}
       {transactions.map((tx) => (
@@ -65,10 +73,10 @@ export function LogTab({
           </span>
           <button
             onClick={() => handleDelete(tx)}
-            className="shrink-0 text-slate-600 transition active:text-red-400"
+            className="shrink-0 p-1 text-slate-600 transition active:text-red-400"
             aria-label="Undo this entry"
           >
-            ✕
+            <XIcon className="h-4 w-4" />
           </button>
         </div>
       ))}
