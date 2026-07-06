@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { ScheduleItem } from '../types';
 import { useConfirm } from './ConfirmSheet';
 import { CheckIcon, GripIcon, PencilIcon, XIcon } from './icons';
+import { placeMedal } from '../lib/placements';
 
 const STATUS_STYLES: Record<ScheduleItem['status'], string> = {
   pending: 'bg-slate-900 ring-1 ring-white/5',
@@ -15,8 +16,6 @@ export interface PlacementDisplay {
   name: string;
   color: string;
 }
-
-const PLACE_MEDALS = ['🥇', '🥈', '🥉'];
 
 export function SortableScheduleItem({
   item,
@@ -86,15 +85,21 @@ export function SortableScheduleItem({
           )}
         </div>
         <p className="text-sm text-slate-500">
-          {item.points} pts · ~{item.durationMin} min
+          {item.scoringMode === 'ranked'
+            ? `By place · ${placeMedal(1)}${item.placePoints?.[0] ?? 0}`
+            : `${item.points} pts`}{' '}
+          · ~{item.durationMin} min
         </p>
         {placements.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
             {placements.map((p) => (
               <span key={p.place} className="flex items-center gap-1 text-xs font-semibold text-slate-300">
-                <span>{PLACE_MEDALS[p.place - 1] ?? `${p.place}.`}</span>
+                <span>{placeMedal(p.place)}</span>
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
                 {p.name}
+                {item.scoringMode === 'ranked' && item.placePoints?.[p.place - 1] != null && (
+                  <span className="text-slate-500">· {item.placePoints[p.place - 1]}</span>
+                )}
               </span>
             ))}
           </div>

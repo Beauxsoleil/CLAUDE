@@ -53,17 +53,19 @@ export function ScheduleTab({
     await reorderSchedule(campId, reordered.map((s) => s.id));
   }
 
-  async function handleAdd(value: ScheduleItemFormValue) {
+  function handleAdd(value: ScheduleItemFormValue) {
     const nextOrder = schedule.length ? Math.max(...schedule.map((s) => s.order)) + 1 : 0;
-    await addScheduleItem(campId, value, nextOrder);
+    addScheduleItem(campId, value, nextOrder);
   }
 
-  async function handleEdit(value: ScheduleItemFormValue) {
+  function handleEdit(value: ScheduleItemFormValue) {
     if (!editing) return;
-    await updateScheduleItem(campId, editing.id, {
+    updateScheduleItem(campId, editing.id, {
       name: value.name,
       points: value.points,
       durationMin: value.durationMin,
+      scoringMode: value.scoringMode,
+      placePoints: value.placePoints,
     });
   }
 

@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import type { EventPreset } from '../types';
+import type { EventPreset, ScoringMode } from '../types';
 import type { TeamWithTotal } from '../hooks/useCampData';
 import { TEAM_COLORS, contrastText } from '../lib/colors';
 import { useConfirm } from '../components/ConfirmSheet';
+import { PlacePointsEditor, ScoringModeToggle } from '../components/ScoringControls';
 import { XIcon, ZapIcon } from '../components/icons';
 import { formatDayKey, todayKey } from '../lib/dates';
+import { placeMedal } from '../lib/placements';
 import {
   addPreset,
   addTeam,
@@ -35,6 +37,8 @@ export function SetupTab({
   const [presetName, setPresetName] = useState('');
   const [presetPoints, setPresetPoints] = useState(10);
   const [presetDuration, setPresetDuration] = useState(30);
+  const [presetMode, setPresetMode] = useState<ScoringMode>('flat');
+  const [presetPlacePoints, setPresetPlacePoints] = useState<number[]>([5000, 3000, 1000]);
   const [copied, setCopied] = useState(false);
   const [customDay, setCustomDay] = useState('');
 
@@ -72,12 +76,18 @@ export function SetupTab({
     if (ok) await deleteTeam(campId, teamId);
   }
 
-  async function handleAddPreset(e: React.FormEvent) {
+  function handleAddPreset(e: React.FormEvent) {
     e.preventDefault();
     const name = presetName.trim();
     if (!name) return;
     setPresetName('');
-    await addPreset(campId, name, presetPoints, presetDuration);
+    addPreset(campId, {
+      name,
+      points: presetPoints,
+      durationMin: presetDuration,
+      scoringMode: presetMode,
+      placePoints: presetMode === 'ranked' ? presetPlacePoints : [],
+    });
   }
 
   async function handleDeletePreset(presetId: string, name: string) {
@@ -267,35 +277,55 @@ export function SetupTab({
       <section>
         <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">Event presets</h2>
         <p className="mb-2.5 text-sm text-slate-500">
-          Reusable events with fixed points — award them in one tap during the day.
+          Reusable events you can add to the schedule in one tap. Give everyone the same points, or
+          award points by finishing place (e.g. 1st 5000, 2nd 3000…).
         </p>
-        <form onSubmit={handleAddPreset} className="mb-3 flex flex-col gap-2 rounded-2xl bg-slate-900 p-3 ring-1 ring-white/5">
+        <form onSubmit={handleAddPreset} className="mb-3 flex flex-col gap-2.5 rounded-2xl bg-slate-900 p-3 ring-1 ring-white/5">
           <input
             value={presetName}
             onChange={(e) => setPresetName(e.target.value)}
             placeholder="Preset name (e.g. Cabin Inspection)"
             className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
           />
-          <div className="flex gap-2">
-            <label className="flex-1 text-xs text-slate-500">
-              Points
-              <input
-                type="number" inputMode="numeric"
-                value={presetPoints}
-                onChange={(e) => setPresetPoints(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
-              />
-            </label>
-            <label className="flex-1 text-xs text-slate-500">
-              ~Duration (min)
-              <input
-                type="number" inputMode="numeric"
-                value={presetDuration}
-                onChange={(e) => setPresetDuration(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
-              />
-            </label>
-          </div>
+          <ScoringModeToggle mode={presetMode} onChange={setPresetMode} />
+          {presetMode === 'flat' ? (
+            <div className="flex gap-2">
+              <label className="flex-1 text-xs text-slate-500">
+                Points (each team)
+                <input
+                  type="number" inputMode="numeric"
+                  value={presetPoints}
+                  onChange={(e) => setPresetPoints(Number(e.target.value))}
+                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+                />
+              </label>
+              <label className="flex-1 text-xs text-slate-500">
+                ~Duration (min)
+                <input
+                  type="number" inputMode="numeric"
+                  value={presetDuration}
+                  onChange={(e) => setPresetDuration(Number(e.target.value))}
+                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+                />
+              </label>
+            </div>
+          ) : (
+            <>
+              <div>
+                <p className="mb-1.5 text-xs text-slate-500">Points by finishing place</p>
+                <PlacePointsEditor value={presetPlacePoints} onChange={setPresetPlacePoints} />
+              </div>
+              <label className="text-xs text-slate-500">
+                ~Duration (min)
+                <input
+                  type="number" inputMode="numeric"
+                  value={presetDuration}
+                  onChange={(e) => setPresetDuration(Number(e.target.value))}
+                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+                />
+              </label>
+            </>
+          )}
           <button
             type="submit"
             disabled={!presetName.trim()}
@@ -309,7 +339,10 @@ export function SetupTab({
             <div key={preset.id} className="flex items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 ring-1 ring-white/5">
               <span className="min-w-0 flex-1 truncate font-semibold text-slate-100">{preset.name}</span>
               <span className="shrink-0 text-sm text-slate-500">
-                {preset.points} pts · ~{preset.durationMin}m
+                {preset.scoringMode === 'ranked'
+                  ? `By place · ${placeMedal(1)}${preset.placePoints?.[0] ?? 0}`
+                  : `${preset.points} pts`}{' '}
+                · ~{preset.durationMin}m
               </span>
               <button
                 onClick={() => handleDeletePreset(preset.id, preset.name)}

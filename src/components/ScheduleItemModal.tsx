@@ -1,11 +1,15 @@
 import { useState } from 'react';
-import type { EventPreset, ScheduleItem } from '../types';
+import type { EventPreset, ScheduleItem, ScoringMode } from '../types';
+import { PlacePointsEditor, ScoringModeToggle } from './ScoringControls';
+import { placeMedal } from '../lib/placements';
 
 export interface ScheduleItemFormValue {
   name: string;
   points: number;
   durationMin: number;
   presetId: string | null;
+  scoringMode: ScoringMode;
+  placePoints: number[];
 }
 
 export function ScheduleItemModal({
@@ -17,13 +21,16 @@ export function ScheduleItemModal({
   presets: EventPreset[];
   initial?: ScheduleItem | null;
   onClose: () => void;
-  onSubmit: (value: ScheduleItemFormValue) => Promise<void>;
+  onSubmit: (value: ScheduleItemFormValue) => void;
 }) {
   const [presetId, setPresetId] = useState<string>(initial?.presetId ?? 'custom');
   const [name, setName] = useState(initial?.name ?? '');
   const [points, setPoints] = useState(initial?.points ?? 10);
   const [durationMin, setDurationMin] = useState(initial?.durationMin ?? 30);
-  const [busy, setBusy] = useState(false);
+  const [scoringMode, setScoringMode] = useState<ScoringMode>(initial?.scoringMode ?? 'flat');
+  const [placePoints, setPlacePoints] = useState<number[]>(
+    initial?.placePoints?.length ? initial.placePoints : [5000, 3000, 1000],
+  );
 
   function applyPreset(id: string) {
     setPresetId(id);
@@ -33,24 +40,23 @@ export function ScheduleItemModal({
       setName(preset.name);
       setPoints(preset.points);
       setDurationMin(preset.durationMin);
+      setScoringMode(preset.scoringMode ?? 'flat');
+      if (preset.placePoints?.length) setPlacePoints(preset.placePoints);
     }
   }
 
-  async function submit(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    setBusy(true);
-    try {
-      await onSubmit({
-        name: name.trim(),
-        points,
-        durationMin,
-        presetId: presetId === 'custom' ? null : presetId,
-      });
-      onClose();
-    } finally {
-      setBusy(false);
-    }
+    onSubmit({
+      name: name.trim(),
+      points,
+      durationMin,
+      presetId: presetId === 'custom' ? null : presetId,
+      scoringMode,
+      placePoints: scoringMode === 'ranked' ? placePoints : [],
+    });
+    onClose();
   }
 
   return (
@@ -58,7 +64,7 @@ export function ScheduleItemModal({
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
-        className="w-full max-w-md rounded-t-3xl bg-slate-900 p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ring-1 ring-white/10"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-slate-900 p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ring-1 ring-white/10"
       >
         <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-700" />
         <h2 className="mb-4 text-lg font-bold text-slate-100">
@@ -89,7 +95,8 @@ export function ScheduleItemModal({
                     presetId === p.id ? 'bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
-                  {p.name} · {p.points}
+                  {p.name} ·{' '}
+                  {p.scoringMode === 'ranked' ? `${placeMedal(1)}${p.placePoints?.[0] ?? 0}` : p.points}
                 </button>
               ))}
             </div>
@@ -106,26 +113,48 @@ export function ScheduleItemModal({
           />
         </label>
 
-        <div className="mb-4 flex gap-3">
-          <label className="flex-1 text-sm text-slate-400">
-            Points
-            <input
-              type="number" inputMode="numeric"
-              value={points}
-              onChange={(e) => setPoints(Number(e.target.value))}
-              className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
-            />
-          </label>
-          <label className="flex-1 text-sm text-slate-400">
-            ~Duration (min)
-            <input
-              type="number" inputMode="numeric"
-              value={durationMin}
-              onChange={(e) => setDurationMin(Number(e.target.value))}
-              className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
-            />
-          </label>
+        <div className="mb-3">
+          <ScoringModeToggle mode={scoringMode} onChange={setScoringMode} />
         </div>
+
+        {scoringMode === 'flat' ? (
+          <div className="mb-4 flex gap-3">
+            <label className="flex-1 text-sm text-slate-400">
+              Points (each team)
+              <input
+                type="number" inputMode="numeric"
+                value={points}
+                onChange={(e) => setPoints(Number(e.target.value))}
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+              />
+            </label>
+            <label className="flex-1 text-sm text-slate-400">
+              ~Duration (min)
+              <input
+                type="number" inputMode="numeric"
+                value={durationMin}
+                onChange={(e) => setDurationMin(Number(e.target.value))}
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+              />
+            </label>
+          </div>
+        ) : (
+          <div className="mb-4 flex flex-col gap-3">
+            <div>
+              <p className="mb-1.5 text-sm text-slate-400">Points by finishing place</p>
+              <PlacePointsEditor value={placePoints} onChange={setPlacePoints} />
+            </div>
+            <label className="text-sm text-slate-400">
+              ~Duration (min)
+              <input
+                type="number" inputMode="numeric"
+                value={durationMin}
+                onChange={(e) => setDurationMin(Number(e.target.value))}
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+              />
+            </label>
+          </div>
+        )}
 
         <div className="flex gap-3">
           <button
@@ -137,10 +166,10 @@ export function ScheduleItemModal({
           </button>
           <button
             type="submit"
-            disabled={busy || !name.trim()}
+            disabled={!name.trim()}
             className="flex-1 rounded-2xl bg-amber-400 px-4 py-3.5 font-bold text-slate-900 transition active:scale-[0.98] disabled:opacity-40"
           >
-            {busy ? 'Saving…' : initial ? 'Save changes' : 'Add to schedule'}
+            {initial ? 'Save changes' : 'Add to schedule'}
           </button>
         </div>
       </form>

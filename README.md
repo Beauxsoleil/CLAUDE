@@ -24,13 +24,18 @@ like a regular app: its own icon, full screen, no browser chrome.
   one-off custom events. Drag to reorder at any time; mark one "active" to
   drive the Live tab, mark it "done" when it wraps up. Order is fluid, not
   clock-locked, so shuffling the day around is just a drag, not a rebuild.
+- **Scoring modes** — each preset/event is either **flat** (every team you
+  tap gets the same points) or **ranked** (points by finishing place, e.g.
+  1st 5000, 2nd 3000, 3rd 1000). Toggle it per event, with an editable ladder
+  of any number of places.
 - **Live tab** — shows the active event and lets you tap teams *in finishing
-  order* to award preset points (1st tap = 1st place 🥇), plus a floating
-  "+ Extra points" button for ad-hoc awards/deductions with a reason, and a
-  live leaderboard.
+  order*. In flat mode every tap awards the same points; in ranked mode the
+  first tap gets 1st-place points, the next gets 2nd, and so on (the tiles
+  show what the next tap is worth). Plus a floating "+ Extra points" button
+  for ad-hoc awards/deductions with a reason, and a live leaderboard.
 - **Placements** — each event remembers who finished 1st/2nd/3rd (derived
   from award order), shown on the team tiles while the event runs and on the
-  Schedule tab afterward.
+  Schedule tab afterward (with the points earned, for ranked events).
 - **Double point days** — mark any day 2× in Setup (today with one tap, or
   any date). Every transaction is timestamped, so flipping a day on or off
   retroactively doubles/undoubles everything awarded that day, everywhere,

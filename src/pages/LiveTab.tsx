@@ -6,20 +6,13 @@ import { ExtraPointsModal } from '../components/ExtraPointsModal';
 import { useConfirm } from '../components/ConfirmSheet';
 import { CheckIcon, PlayIcon, PlusIcon, ZapIcon } from '../components/icons';
 import { contrastText } from '../lib/colors';
+import { placeMedal } from '../lib/placements';
 import {
   awardPoints,
   deleteTransaction,
   markScheduleItemDone,
   setActiveScheduleItem,
 } from '../lib/campRepo';
-
-const RANK_BADGES = ['🥇', '🥈', '🥉'];
-
-export function placeLabel(place: number): string {
-  if (place <= 3) return RANK_BADGES[place - 1];
-  const suffix = place === 21 ? 'st' : place === 22 ? 'nd' : place === 23 ? 'rd' : 'th';
-  return `${place}${suffix}`;
-}
 
 interface UndoToast {
   message: string;
@@ -69,6 +62,17 @@ export function LiveTab({
   const needsSetup = teams.length === 0 || schedule.length === 0;
   const multiplier = isTodayDouble ? 2 : 1;
 
+  // Ranked scoring: points depend on finishing place. The place a team would
+  // get if tapped next is (# teams already awarded) + 1.
+  const isRanked =
+    activeScheduleItem?.scoringMode === 'ranked' &&
+    (activeScheduleItem.placePoints?.length ?? 0) > 0;
+  const placePoints = activeScheduleItem?.placePoints ?? [];
+  const nextPlaceIndex = placeByTeam.size; // 0-based place for the next tap
+  const pointsForNextTap = isRanked
+    ? placePoints[nextPlaceIndex] ?? 0
+    : activeScheduleItem?.points ?? 0;
+
   const elapsedMin = activeScheduleItem?.startedAt
     ? Math.max(0, Math.floor((now - activeScheduleItem.startedAt) / 60_000))
     : 0;
@@ -106,21 +110,25 @@ export function LiveTab({
     if (placeByTeam.has(team.id)) {
       const ok = await confirm({
         title: `${team.name} already got points`,
-        message: `They finished ${placeLabel(placeByTeam.get(team.id) ?? 1)} in "${activeScheduleItem.name}". Award another +${activeScheduleItem.points * multiplier}?`,
+        message: `They finished ${placeMedal(placeByTeam.get(team.id) ?? 1)} in "${activeScheduleItem.name}". Award another +${pointsForNextTap * multiplier}?`,
         confirmLabel: 'Award again',
       });
       if (!ok) return;
     }
+    // Capture the place this tap represents before the award lands.
+    const place = nextPlaceIndex + 1;
+    const basePoints = pointsForNextTap;
     const txId = awardPoints(campId, {
       teamId: team.id,
       teamName: team.name,
-      points: activeScheduleItem.points,
+      points: basePoints,
       reason: activeScheduleItem.name,
       type: 'event',
       scheduleItemId: activeScheduleItem.id,
     });
+    const eff = basePoints * multiplier;
     showUndoToast(
-      `+${activeScheduleItem.points * multiplier}${isTodayDouble ? ' (2×)' : ''} to ${team.name}`,
+      `${isRanked ? `${placeMedal(place)} ` : ''}+${eff}${isTodayDouble ? ' (2×)' : ''} to ${team.name}`,
       txId,
     );
   }
@@ -198,10 +206,24 @@ export function LiveTab({
             </span>
           </div>
           <h2 className="mt-2 text-3xl font-black leading-tight">{activeScheduleItem.name}</h2>
-          <p className="mt-1 font-semibold opacity-80">
-            {activeScheduleItem.points * multiplier} pts to award
-            {isTodayDouble && <span className="ml-1.5 rounded-full bg-slate-900/15 px-2 py-0.5 text-xs font-black">2×</span>}
-          </p>
+          {isRanked ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-bold opacity-80">
+              {placePoints.map((pts, i) => (
+                <span key={i} className="flex items-center gap-1 text-sm">
+                  <span>{placeMedal(i + 1)}</span>
+                  {pts * multiplier}
+                </span>
+              ))}
+              {isTodayDouble && (
+                <span className="rounded-full bg-slate-900/15 px-2 py-0.5 text-xs font-black">2×</span>
+              )}
+            </div>
+          ) : (
+            <p className="mt-1 font-semibold opacity-80">
+              {activeScheduleItem.points * multiplier} pts to award
+              {isTodayDouble && <span className="ml-1.5 rounded-full bg-slate-900/15 px-2 py-0.5 text-xs font-black">2×</span>}
+            </p>
+          )}
 
           <div className="mt-4">
             <div className="h-1.5 overflow-hidden rounded-full bg-slate-900/20">
@@ -255,8 +277,11 @@ export function LiveTab({
       {/* Award points for active event */}
       {activeScheduleItem && teams.length > 0 && (
         <section>
-          <h3 className="mb-2.5 text-xs font-bold uppercase tracking-widest text-slate-500">
-            Tap teams in finishing order
+          <h3 className="mb-2.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-slate-500">
+            <span>Tap teams in finishing order</span>
+            {isRanked && placeByTeam.size < placePoints.length && (
+              <span className="text-amber-400">next: +{pointsForNextTap * multiplier}</span>
+            )}
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {teams.map((team) => {
@@ -276,7 +301,7 @@ export function LiveTab({
                       className="flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-black"
                       style={{ backgroundColor: chipBg }}
                     >
-                      {place ? placeLabel(place) : `+${activeScheduleItem.points * multiplier}`}
+                      {place ? placeMedal(place) : `+${pointsForNextTap * multiplier}`}
                     </span>
                   </div>
                   <span className="text-sm font-medium opacity-75">{team.total} pts</span>
@@ -298,7 +323,7 @@ export function LiveTab({
               <div key={team.id} className="rounded-2xl bg-slate-900 px-4 py-3 ring-1 ring-white/5">
                 <div className="flex items-center gap-3">
                   <span className="w-7 text-center text-base">
-                    {RANK_BADGES[i] ?? <span className="text-sm font-bold text-slate-500">{i + 1}</span>}
+                    {i < 3 ? placeMedal(i + 1) : <span className="text-sm font-bold text-slate-500">{i + 1}</span>}
                   </span>
                   <span className="flex-1 truncate font-semibold text-slate-100">{team.name}</span>
                   <span className="text-lg font-black tabular-nums text-slate-100">{team.total}</span>

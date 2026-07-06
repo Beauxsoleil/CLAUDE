@@ -14,7 +14,15 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { generateCampCode, normalizeCampCode } from './campCode';
-import type { Camp, EventPreset, ScheduleItem, ScheduleStatus, Team, Transaction } from '../types';
+import type {
+  Camp,
+  EventPreset,
+  ScheduleItem,
+  ScheduleStatus,
+  ScoringMode,
+  Team,
+  Transaction,
+} from '../types';
 
 // Writes are intentionally NOT awaited to completion: with offline persistence
 // enabled, Firestore applies them to the local cache immediately (snapshots
@@ -122,14 +130,22 @@ export function subscribePresets(campId: string, cb: (presets: EventPreset[]) =>
   });
 }
 
-export function addPreset(campId: string, name: string, points: number, durationMin: number) {
-  fireWrite(setDoc(doc(presetsCol(campId)), { name, points, durationMin, createdAt: Date.now() }));
+export interface PresetInput {
+  name: string;
+  points: number;
+  durationMin: number;
+  scoringMode: ScoringMode;
+  placePoints: number[];
+}
+
+export function addPreset(campId: string, input: PresetInput) {
+  fireWrite(setDoc(doc(presetsCol(campId)), { ...input, createdAt: Date.now() }));
 }
 
 export function updatePreset(
   campId: string,
   presetId: string,
-  patch: Partial<Pick<EventPreset, 'name' | 'points' | 'durationMin'>>,
+  patch: Partial<Pick<EventPreset, 'name' | 'points' | 'durationMin' | 'scoringMode' | 'placePoints'>>,
 ) {
   fireWrite(updateDoc(doc(db, 'camps', campId, 'eventPresets', presetId), patch));
 }
@@ -149,7 +165,14 @@ export function subscribeSchedule(campId: string, cb: (items: ScheduleItem[]) =>
 
 export function addScheduleItem(
   campId: string,
-  input: { name: string; points: number; durationMin: number; presetId: string | null },
+  input: {
+    name: string;
+    points: number;
+    durationMin: number;
+    presetId: string | null;
+    scoringMode: ScoringMode;
+    placePoints: number[];
+  },
   order: number,
 ) {
   fireWrite(
@@ -167,7 +190,12 @@ export function addScheduleItem(
 export function updateScheduleItem(
   campId: string,
   itemId: string,
-  patch: Partial<Pick<ScheduleItem, 'name' | 'points' | 'durationMin' | 'status' | 'startedAt' | 'finishedAt'>>,
+  patch: Partial<
+    Pick<
+      ScheduleItem,
+      'name' | 'points' | 'durationMin' | 'scoringMode' | 'placePoints' | 'status' | 'startedAt' | 'finishedAt'
+    >
+  >,
 ) {
   fireWrite(updateDoc(doc(db, 'camps', campId, 'schedule', itemId), patch));
 }

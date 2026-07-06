@@ -13,11 +13,20 @@ export interface Team {
   createdAt: number;
 }
 
+/**
+ * 'flat'   — every team tapped gets the same `points`.
+ * 'ranked' — teams get points by finishing place from `placePoints`
+ *            (index 0 = 1st place, 1 = 2nd, …); places past the end get 0.
+ */
+export type ScoringMode = 'flat' | 'ranked';
+
 export interface EventPreset {
   id: string;
   name: string;
   points: number;
   durationMin: number;
+  scoringMode?: ScoringMode;
+  placePoints?: number[];
   createdAt: number;
 }
 
@@ -30,6 +39,8 @@ export interface ScheduleItem {
   points: number;
   durationMin: number;
   presetId: string | null;
+  scoringMode?: ScoringMode;
+  placePoints?: number[];
   status: ScheduleStatus;
   startedAt: number | null;
   finishedAt: number | null;
