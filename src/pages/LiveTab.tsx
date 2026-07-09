@@ -154,20 +154,20 @@ export function LiveTab({
     <div className="flex flex-col gap-6 p-4 pb-32">
       {/* Double point day banner */}
       {isTodayDouble && (
-        <div className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-500/20 via-fuchsia-500/20 to-violet-500/20 px-4 py-2.5 ring-1 ring-fuchsia-400/40">
-          <ZapIcon className="h-4 w-4 text-fuchsia-300" />
-          <p className="text-sm font-bold text-fuchsia-200">
+        <div className="flex items-center justify-center gap-2 rounded-2xl bg-special/15 px-4 py-2.5 ring-1 ring-special/40">
+          <ZapIcon className="h-4 w-4 text-special" />
+          <p className="text-sm font-bold text-special">
             Double point day — everything counts 2×
           </p>
-          <ZapIcon className="h-4 w-4 text-fuchsia-300" />
+          <ZapIcon className="h-4 w-4 text-special" />
         </div>
       )}
 
       {/* First-run guided checklist */}
       {needsSetup && !activeScheduleItem && (
-        <div className="rounded-3xl bg-slate-900 p-5 ring-1 ring-white/5">
-          <h2 className="text-xl font-bold text-slate-100">Let's get set up</h2>
-          <p className="mt-1 text-sm text-slate-500">Three quick steps and you're scoring.</p>
+        <div className="rounded-3xl bg-surface p-5 ring-1 ring-line">
+          <h2 className="text-xl font-bold text-ink">Let's get set up</h2>
+          <p className="mt-1 text-sm text-ink-faint">Three quick steps and you're scoring.</p>
           <div className="mt-4 flex flex-col gap-2.5">
             <SetupStep
               n={1}
@@ -197,11 +197,11 @@ export function LiveTab({
 
       {/* Current event card */}
       {activeScheduleItem ? (
-        <div className="rounded-3xl bg-gradient-to-br from-amber-300 to-amber-500 p-5 text-slate-900 shadow-xl shadow-amber-500/20">
+        <div className="rounded-3xl bg-gradient-to-br from-accent-hi to-accent-lo p-5 text-on-accent shadow-xl shadow-accent/20">
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold uppercase tracking-widest opacity-70">Happening now</p>
-            <span className="flex items-center gap-1.5 rounded-full bg-slate-900/90 px-2.5 py-1 text-xs font-bold text-amber-300">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-300" />
+            <span className="flex items-center gap-1.5 rounded-full bg-on-accent/90 px-2.5 py-1 text-xs font-bold text-accent">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
               LIVE
             </span>
           </div>
@@ -215,20 +215,20 @@ export function LiveTab({
                 </span>
               ))}
               {isTodayDouble && (
-                <span className="rounded-full bg-slate-900/15 px-2 py-0.5 text-xs font-black">2×</span>
+                <span className="rounded-full bg-on-accent/15 px-2 py-0.5 text-xs font-black">2×</span>
               )}
             </div>
           ) : (
             <p className="mt-1 font-semibold opacity-80">
               {activeScheduleItem.points * multiplier} pts to award
-              {isTodayDouble && <span className="ml-1.5 rounded-full bg-slate-900/15 px-2 py-0.5 text-xs font-black">2×</span>}
+              {isTodayDouble && <span className="ml-1.5 rounded-full bg-on-accent/15 px-2 py-0.5 text-xs font-black">2×</span>}
             </p>
           )}
 
           <div className="mt-4">
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-900/20">
+            <div className="h-1.5 overflow-hidden rounded-full bg-on-accent/20">
               <div
-                className={`h-full rounded-full transition-all duration-700 ${overTime ? 'bg-red-700' : 'bg-slate-900'}`}
+                className={`h-full rounded-full transition-all duration-700 ${overTime ? 'bg-danger-strong' : 'bg-on-accent'}`}
                 style={{ width: `${Math.round(progress * 100)}%` }}
               />
             </div>
@@ -241,7 +241,7 @@ export function LiveTab({
 
           <button
             onClick={finishActive}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 font-bold text-amber-300 transition active:scale-[0.98]"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-surface px-4 py-3 font-bold text-accent-text transition active:scale-[0.98]"
           >
             <CheckIcon className="h-4 w-4" />
             Mark event done
@@ -249,18 +249,18 @@ export function LiveTab({
         </div>
       ) : (
         !needsSetup && (
-          <div className="rounded-3xl border border-dashed border-slate-700 p-6 text-center">
-            <p className="text-slate-400">No event is running right now.</p>
+          <div className="rounded-3xl border border-dashed border-line p-6 text-center">
+            <p className="text-ink-muted">No event is running right now.</p>
             {nextScheduleItem ? (
               <button
                 onClick={startNext}
-                className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 px-5 py-3 font-bold text-slate-900 shadow-lg shadow-amber-500/20 transition active:scale-[0.98]"
+                className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-br from-accent-hi to-accent-lo px-5 py-3 font-bold text-on-accent shadow-lg shadow-accent/20 transition active:scale-[0.98]"
               >
                 <PlayIcon className="h-4 w-4" />
                 Start "{nextScheduleItem.name}"
               </button>
             ) : (
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-2 text-sm text-ink-faint">
                 All events are done — add more in the Schedule tab if the day isn't over!
               </p>
             )}
@@ -269,18 +269,18 @@ export function LiveTab({
       )}
 
       {nextScheduleItem && activeScheduleItem && (
-        <p className="-mt-3 text-center text-sm text-slate-500">
-          Up next: <span className="font-semibold text-slate-300">{nextScheduleItem.name}</span>
+        <p className="-mt-3 text-center text-sm text-ink-faint">
+          Up next: <span className="font-semibold text-ink-muted">{nextScheduleItem.name}</span>
         </p>
       )}
 
       {/* Award points for active event */}
       {activeScheduleItem && teams.length > 0 && (
         <section>
-          <h3 className="mb-2.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-slate-500">
+          <h3 className="mb-2.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-ink-faint">
             <span>Tap teams in finishing order</span>
             {isRanked && placeByTeam.size < placePoints.length && (
-              <span className="text-amber-400">next: +{pointsForNextTap * multiplier}</span>
+              <span className="text-accent-text">next: +{pointsForNextTap * multiplier}</span>
             )}
           </h3>
           <div className="grid grid-cols-2 gap-3">
@@ -315,20 +315,20 @@ export function LiveTab({
       {/* Leaderboard */}
       {teams.length > 0 && (
         <section>
-          <h3 className="mb-2.5 text-xs font-bold uppercase tracking-widest text-slate-500">
+          <h3 className="mb-2.5 text-xs font-bold uppercase tracking-widest text-ink-faint">
             Leaderboard
           </h3>
           <div className="flex flex-col gap-2">
             {teams.map((team, i) => (
-              <div key={team.id} className="rounded-2xl bg-slate-900 px-4 py-3 ring-1 ring-white/5">
+              <div key={team.id} className="rounded-2xl bg-surface px-4 py-3 ring-1 ring-line">
                 <div className="flex items-center gap-3">
                   <span className="w-7 text-center text-base">
-                    {i < 3 ? placeMedal(i + 1) : <span className="text-sm font-bold text-slate-500">{i + 1}</span>}
+                    {i < 3 ? placeMedal(i + 1) : <span className="text-sm font-bold text-ink-faint">{i + 1}</span>}
                   </span>
-                  <span className="flex-1 truncate font-semibold text-slate-100">{team.name}</span>
-                  <span className="text-lg font-black tabular-nums text-slate-100">{team.total}</span>
+                  <span className="flex-1 truncate font-semibold text-ink">{team.name}</span>
+                  <span className="text-lg font-black tabular-nums text-ink">{team.total}</span>
                 </div>
-                <div className="ml-10 mt-1.5 h-1 overflow-hidden rounded-full bg-slate-800">
+                <div className="ml-10 mt-1.5 h-1 overflow-hidden rounded-full bg-surface2">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
@@ -345,9 +345,9 @@ export function LiveTab({
 
       {/* Undo toast */}
       {toast && (
-        <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-50 flex items-center justify-between gap-3 rounded-2xl bg-slate-800 px-4 py-3 shadow-xl ring-1 ring-white/10">
-          <span className="font-semibold text-slate-100">{toast.message}</span>
-          <button onClick={undoLastAward} className="font-bold text-amber-300">
+        <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-50 flex items-center justify-between gap-3 rounded-2xl bg-surface2 px-4 py-3 shadow-xl ring-1 ring-line">
+          <span className="font-semibold text-ink">{toast.message}</span>
+          <button onClick={undoLastAward} className="font-bold text-accent-text">
             Undo
           </button>
         </div>
@@ -356,7 +356,7 @@ export function LiveTab({
       {teams.length > 0 && !toast && (
         <button
           onClick={() => setShowExtra(true)}
-          className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] right-4 z-40 flex items-center gap-1.5 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 px-5 py-3.5 font-bold text-slate-900 shadow-xl shadow-amber-500/30 transition active:scale-95"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] right-4 z-40 flex items-center gap-1.5 rounded-full bg-gradient-to-br from-accent-hi to-accent-lo px-5 py-3.5 font-bold text-on-accent shadow-xl shadow-accent/30 transition active:scale-95"
         >
           <PlusIcon className="h-4 w-4" />
           Extra points
@@ -388,23 +388,23 @@ function SetupStep({
   return (
     <div
       className={`flex items-center gap-3 rounded-2xl px-3.5 py-3 ${
-        done ? 'bg-emerald-400/10' : 'bg-slate-800/60'
+        done ? 'bg-positive/10' : 'bg-surface2/60'
       }`}
     >
       <span
         className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-black ${
-          done ? 'bg-emerald-400 text-slate-900' : 'bg-slate-700 text-slate-300'
+          done ? 'bg-positive text-on-accent' : 'bg-surface3 text-ink-muted'
         }`}
       >
         {done ? <CheckIcon className="h-4 w-4" /> : n}
       </span>
-      <span className={`flex-1 font-semibold ${done ? 'text-emerald-300' : 'text-slate-200'}`}>
+      <span className={`flex-1 font-semibold ${done ? 'text-positive' : 'text-ink'}`}>
         {label}
       </span>
       {!done && actionLabel && onAction && !locked && (
         <button
           onClick={onAction}
-          className="shrink-0 rounded-xl bg-amber-400 px-3.5 py-2 text-xs font-bold text-slate-900 transition active:scale-95"
+          className="shrink-0 rounded-xl bg-accent px-3.5 py-2 text-xs font-bold text-on-accent transition active:scale-95"
         >
           {actionLabel}
         </button>

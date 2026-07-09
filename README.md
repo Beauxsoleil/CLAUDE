@@ -45,6 +45,10 @@ like a regular app: its own icon, full screen, no browser chrome.
 - **Offline-ready** — points awarded without signal apply to the scoreboard
   immediately, an "Offline" banner shows in the header, and everything syncs
   automatically when connection returns.
+- **Themes** — an Appearance picker in Setup switches between a dark
+  ("Midnight") look and a minimalist warm-beige ("Sandstone") look. The
+  choice is saved per device, so each counselor can pick their own. Colors
+  are driven by semantic CSS-variable tokens, so new themes are easy to add.
 
 ## Tech stack
 

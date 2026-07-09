@@ -64,24 +64,24 @@ export function ScheduleItemModal({
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-slate-900 p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ring-1 ring-white/10"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-surface p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ring-1 ring-line"
       >
-        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-700" />
-        <h2 className="mb-4 text-lg font-bold text-slate-100">
+        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-surface3" />
+        <h2 className="mb-4 text-lg font-bold text-ink">
           {initial ? 'Edit event' : 'Add event to schedule'}
         </h2>
 
         {presets.length > 0 && !initial && (
           <div className="mb-4">
-            <p className="mb-1.5 text-sm text-slate-400">Start from a preset</p>
+            <p className="mb-1.5 text-sm text-ink-muted">Start from a preset</p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => applyPreset('custom')}
                 className={`rounded-full px-3.5 py-2 text-sm font-bold transition ${
                   presetId === 'custom'
-                    ? 'bg-amber-400 text-slate-900'
-                    : 'bg-slate-800 text-slate-300'
+                    ? 'bg-accent text-on-accent'
+                    : 'bg-surface2 text-ink-muted'
                 }`}
               >
                 Custom
@@ -92,7 +92,7 @@ export function ScheduleItemModal({
                   type="button"
                   onClick={() => applyPreset(p.id)}
                   className={`rounded-full px-3.5 py-2 text-sm font-bold transition ${
-                    presetId === p.id ? 'bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-300'
+                    presetId === p.id ? 'bg-accent text-on-accent' : 'bg-surface2 text-ink-muted'
                   }`}
                 >
                   {p.name} ·{' '}
@@ -103,13 +103,13 @@ export function ScheduleItemModal({
           </div>
         )}
 
-        <label className="mb-3 block text-sm text-slate-400">
+        <label className="mb-3 block text-sm text-ink-muted">
           Event name
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Capture the Flag"
-            className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+            className="mt-1 w-full rounded-xl border border-line bg-surface2 px-4 py-3 text-ink outline-none focus:border-accent"
           />
         </label>
 
@@ -119,38 +119,38 @@ export function ScheduleItemModal({
 
         {scoringMode === 'flat' ? (
           <div className="mb-4 flex gap-3">
-            <label className="flex-1 text-sm text-slate-400">
+            <label className="flex-1 text-sm text-ink-muted">
               Points (each team)
               <input
                 type="number" inputMode="numeric"
                 value={points}
                 onChange={(e) => setPoints(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+                className="mt-1 w-full rounded-xl border border-line bg-surface2 px-4 py-3 text-ink outline-none focus:border-accent"
               />
             </label>
-            <label className="flex-1 text-sm text-slate-400">
+            <label className="flex-1 text-sm text-ink-muted">
               ~Duration (min)
               <input
                 type="number" inputMode="numeric"
                 value={durationMin}
                 onChange={(e) => setDurationMin(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+                className="mt-1 w-full rounded-xl border border-line bg-surface2 px-4 py-3 text-ink outline-none focus:border-accent"
               />
             </label>
           </div>
         ) : (
           <div className="mb-4 flex flex-col gap-3">
             <div>
-              <p className="mb-1.5 text-sm text-slate-400">Points by finishing place</p>
+              <p className="mb-1.5 text-sm text-ink-muted">Points by finishing place</p>
               <PlacePointsEditor value={placePoints} onChange={setPlacePoints} />
             </div>
-            <label className="text-sm text-slate-400">
+            <label className="text-sm text-ink-muted">
               ~Duration (min)
               <input
                 type="number" inputMode="numeric"
                 value={durationMin}
                 onChange={(e) => setDurationMin(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+                className="mt-1 w-full rounded-xl border border-line bg-surface2 px-4 py-3 text-ink outline-none focus:border-accent"
               />
             </label>
           </div>
@@ -160,14 +160,14 @@ export function ScheduleItemModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-2xl bg-slate-800 px-4 py-3.5 font-bold text-slate-300 transition active:scale-[0.98]"
+            className="flex-1 rounded-2xl bg-surface2 px-4 py-3.5 font-bold text-ink-muted transition active:scale-[0.98]"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!name.trim()}
-            className="flex-1 rounded-2xl bg-amber-400 px-4 py-3.5 font-bold text-slate-900 transition active:scale-[0.98] disabled:opacity-40"
+            className="flex-1 rounded-2xl bg-accent px-4 py-3.5 font-bold text-on-accent transition active:scale-[0.98] disabled:opacity-40"
           >
             {initial ? 'Save changes' : 'Add to schedule'}
           </button>

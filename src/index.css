@@ -1,7 +1,61 @@
 @import "tailwindcss";
 
+/* Semantic color tokens — the default values are the dark ("Midnight") theme.
+   Each theme below overrides these variables, and every component uses the
+   semantic utility classes (bg-surface, text-ink, bg-accent, …) so swapping
+   the theme re-skins the whole app. */
+@theme {
+  --color-canvas: #060a14;
+  --color-surface: #0f172a;
+  --color-surface2: #1e293b;
+  --color-surface3: #334155;
+  --color-line: #223049;
+
+  --color-ink: #f1f5f9;
+  --color-ink-muted: #94a3b8;
+  --color-ink-faint: #64748b;
+
+  --color-accent: #fbbf24;
+  --color-accent-hi: #fcd34d;
+  --color-accent-lo: #f59e0b;
+  --color-accent-text: #fcd34d;
+  --color-on-accent: #0f172a;
+
+  --color-positive: #34d399;
+  --color-danger: #f87171;
+  --color-danger-strong: #b91c1c;
+  --color-special: #e879f9;
+}
+
+/* Minimalist beige ("Sandstone") theme. */
+[data-theme='beige'] {
+  --color-canvas: #ece5d8;
+  --color-surface: #f8f4ec;
+  --color-surface2: #e9e0d0;
+  --color-surface3: #ddd2bd;
+  --color-line: #d8cdb8;
+
+  --color-ink: #2c2822;
+  --color-ink-muted: #6f6555;
+  --color-ink-faint: #a1957f;
+
+  --color-accent: #c39457;
+  --color-accent-hi: #d2a86c;
+  --color-accent-lo: #ab7940;
+  --color-accent-text: #8a5c22;
+  --color-on-accent: #2c2822;
+
+  --color-positive: #5f7a4e;
+  --color-danger: #b0553f;
+  --color-danger-strong: #8f3f2c;
+  --color-special: #9a6b7c;
+}
+
 :root {
   color-scheme: dark;
+}
+[data-theme='beige'] {
+  color-scheme: light;
 }
 
 html, body, #root {
@@ -10,6 +64,7 @@ html, body, #root {
 
 body {
   margin: 0;
+  background: var(--color-canvas);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
 }

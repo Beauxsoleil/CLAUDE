@@ -32,20 +32,20 @@ export function ExtraPointsModal({
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
-        className="w-full max-w-md rounded-t-3xl bg-slate-900 p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ring-1 ring-white/10"
+        className="w-full max-w-md rounded-t-3xl bg-surface p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ring-1 ring-line"
       >
-        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-700" />
-        <h2 className="mb-4 text-lg font-bold text-slate-100">
+        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-surface3" />
+        <h2 className="mb-4 text-lg font-bold text-ink">
           {mode === 'deduct' ? 'Deduct points' : 'Award extra points'}
         </h2>
 
         {/* Award / Deduct toggle */}
-        <div className="mb-4 grid grid-cols-2 gap-1 rounded-2xl bg-slate-800 p-1">
+        <div className="mb-4 grid grid-cols-2 gap-1 rounded-2xl bg-surface2 p-1">
           <button
             type="button"
             onClick={() => setMode('award')}
             className={`rounded-xl py-2 text-sm font-bold transition ${
-              mode === 'award' ? 'bg-amber-400 text-slate-900' : 'text-slate-400'
+              mode === 'award' ? 'bg-accent text-on-accent' : 'text-ink-muted'
             }`}
           >
             Award
@@ -54,7 +54,7 @@ export function ExtraPointsModal({
             type="button"
             onClick={() => setMode('deduct')}
             className={`rounded-xl py-2 text-sm font-bold transition ${
-              mode === 'deduct' ? 'bg-red-500 text-white' : 'text-slate-400'
+              mode === 'deduct' ? 'bg-danger text-white' : 'text-ink-muted'
             }`}
           >
             Deduct
@@ -62,7 +62,7 @@ export function ExtraPointsModal({
         </div>
 
         {/* Team picker chips */}
-        <p className="mb-1.5 text-sm text-slate-400">Team</p>
+        <p className="mb-1.5 text-sm text-ink-muted">Team</p>
         <div className="mb-4 grid grid-cols-2 gap-2">
           {teams.map((t) => {
             const selected = t.id === teamId;
@@ -72,7 +72,7 @@ export function ExtraPointsModal({
                 type="button"
                 onClick={() => setTeamId(t.id)}
                 className={`truncate rounded-xl px-3 py-2.5 text-sm font-bold transition ${
-                  selected ? '' : 'bg-slate-800 text-slate-300'
+                  selected ? '' : 'bg-surface2 text-ink-muted'
                 }`}
                 style={selected ? { backgroundColor: t.color, color: contrastText(t.color) } : undefined}
               >
@@ -83,12 +83,12 @@ export function ExtraPointsModal({
         </div>
 
         {/* Amount */}
-        <p className="mb-1.5 text-sm text-slate-400">Points</p>
+        <p className="mb-1.5 text-sm text-ink-muted">Points</p>
         <div className="mb-2 flex items-center gap-2">
           <button
             type="button"
             onClick={() => setAmount((p) => Math.max(0, p - 5))}
-            className="h-12 w-12 shrink-0 rounded-xl bg-slate-800 text-xl font-bold text-slate-100 transition active:scale-95"
+            className="h-12 w-12 shrink-0 rounded-xl bg-surface2 text-xl font-bold text-ink transition active:scale-95"
           >
             −
           </button>
@@ -97,12 +97,12 @@ export function ExtraPointsModal({
             min={0}
             value={amount}
             onChange={(e) => setAmount(Math.abs(Number(e.target.value)))}
-            className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-center text-2xl font-black tabular-nums text-slate-100 outline-none focus:border-amber-400"
+            className="w-full rounded-xl border border-line bg-surface2 px-4 py-3 text-center text-2xl font-black tabular-nums text-ink outline-none focus:border-accent"
           />
           <button
             type="button"
             onClick={() => setAmount((p) => p + 5)}
-            className="h-12 w-12 shrink-0 rounded-xl bg-slate-800 text-xl font-bold text-slate-100 transition active:scale-95"
+            className="h-12 w-12 shrink-0 rounded-xl bg-surface2 text-xl font-bold text-ink transition active:scale-95"
           >
             +
           </button>
@@ -114,7 +114,7 @@ export function ExtraPointsModal({
               type="button"
               onClick={() => setAmount(q)}
               className={`flex-1 rounded-xl py-2 text-sm font-bold transition ${
-                amount === q ? 'bg-slate-700 text-slate-100' : 'bg-slate-800 text-slate-400'
+                amount === q ? 'bg-surface3 text-ink' : 'bg-surface2 text-ink-muted'
               }`}
             >
               {q}
@@ -122,13 +122,13 @@ export function ExtraPointsModal({
           ))}
         </div>
 
-        <label className="mb-5 block text-sm text-slate-400">
+        <label className="mb-5 block text-sm text-ink-muted">
           Reason
           <input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Cabin cleanliness, sportsmanship, etc."
-            className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none focus:border-amber-400"
+            className="mt-1 w-full rounded-xl border border-line bg-surface2 px-4 py-3 text-ink outline-none focus:border-accent"
           />
         </label>
 
@@ -136,7 +136,7 @@ export function ExtraPointsModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-2xl bg-slate-800 px-4 py-3.5 font-bold text-slate-300 transition active:scale-[0.98]"
+            className="flex-1 rounded-2xl bg-surface2 px-4 py-3.5 font-bold text-ink-muted transition active:scale-[0.98]"
           >
             Cancel
           </button>
@@ -144,7 +144,7 @@ export function ExtraPointsModal({
             type="submit"
             disabled={!teamId || amount === 0}
             className={`flex-1 rounded-2xl px-4 py-3.5 font-bold transition active:scale-[0.98] disabled:opacity-40 ${
-              mode === 'deduct' ? 'bg-red-500 text-white' : 'bg-amber-400 text-slate-900'
+              mode === 'deduct' ? 'bg-danger text-white' : 'bg-accent text-on-accent'
             }`}
           >
             {mode === 'deduct' ? `Deduct −${Math.abs(amount)}` : `Award +${Math.abs(amount)}`}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCampSession } from './hooks/useCampSession';
 import { useCampData } from './hooks/useCampData';
+import { useTheme, type ThemeId } from './hooks/useTheme';
 import { CampGate } from './components/CampGate';
 import { LiveTab } from './pages/LiveTab';
 import { ScheduleTab } from './pages/ScheduleTab';
@@ -43,12 +44,13 @@ const TABS: { id: Tab; label: string; Icon: typeof TrophyIcon }[] = [
 
 function App() {
   const session = useCampSession();
+  const { theme, setTheme } = useTheme();
   const [tab, setTab] = useState<Tab>('live');
 
   if (session.loading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-950 text-slate-500">
-        <TentIcon className="h-10 w-10 text-amber-400" />
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-canvas text-ink-faint">
+        <TentIcon className="h-10 w-10 text-accent-text" />
         Loading…
       </div>
     );
@@ -65,6 +67,8 @@ function App() {
       tab={tab}
       setTab={setTab}
       onLeave={session.leave}
+      theme={theme}
+      setTheme={setTheme}
     />
   );
 }
@@ -75,12 +79,16 @@ function CampApp({
   tab,
   setTab,
   onLeave,
+  theme,
+  setTheme,
 }: {
   campId: string;
   campName: string;
   tab: Tab;
   setTab: (t: Tab) => void;
   onLeave: () => void;
+  theme: ThemeId;
+  setTheme: (t: ThemeId) => void;
 }) {
   const data = useCampData(campId);
   const online = useOnline();
@@ -97,18 +105,18 @@ function CampApp({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-canvas text-ink">
       <div
         className="pointer-events-none fixed inset-x-0 top-0 z-0 h-72"
         style={{ background: 'radial-gradient(ellipse 90% 100% at 50% 0%, rgba(251,191,36,0.06), transparent)' }}
       />
 
-      <header className="sticky top-0 z-30 border-b border-white/5 bg-slate-950/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-line bg-canvas/90 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3">
           <h1 className="min-w-0 truncate text-lg font-bold tracking-tight">{campName}</h1>
           <button
             onClick={copyCode}
-            className="flex shrink-0 items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-bold tracking-widest text-amber-300 ring-1 ring-white/10 transition active:scale-95"
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-bold tracking-widest text-accent-text ring-1 ring-line transition active:scale-95"
             aria-label="Copy camp code"
           >
             {campId}
@@ -116,7 +124,7 @@ function CampApp({
           </button>
         </div>
         {!online && (
-          <div className="flex items-center justify-center gap-1.5 bg-amber-500/15 py-1 text-xs font-semibold text-amber-300">
+          <div className="flex items-center justify-center gap-1.5 bg-accent/15 py-1 text-xs font-semibold text-accent-text">
             <WifiOffIcon className="h-3.5 w-3.5" />
             Offline — points still count and will sync when you're back
           </div>
@@ -152,6 +160,8 @@ function CampApp({
             teams={data.teamsWithTotals}
             presets={data.presets}
             doubleDays={data.doubleDays}
+            theme={theme}
+            setTheme={setTheme}
             onLeave={onLeave}
           />
         )}
@@ -165,7 +175,7 @@ function CampApp({
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/5 bg-slate-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-line bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur">
         <div className="mx-auto flex max-w-lg">
           {TABS.map(({ id, label, Icon }) => {
             const active = tab === id;
@@ -174,12 +184,12 @@ function CampApp({
                 key={id}
                 onClick={() => setTab(id)}
                 className={`flex flex-1 select-none flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition ${
-                  active ? 'text-amber-300' : 'text-slate-500'
+                  active ? 'text-accent-text' : 'text-ink-faint'
                 }`}
               >
                 <span
                   className={`flex h-7 items-center justify-center rounded-full px-4 transition ${
-                    active ? 'bg-amber-400/15' : ''
+                    active ? 'bg-accent/15' : ''
                   }`}
                 >
                   <Icon className="h-5 w-5" />

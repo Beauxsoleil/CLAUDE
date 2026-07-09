@@ -6,9 +6,9 @@ import { CheckIcon, GripIcon, PencilIcon, XIcon } from './icons';
 import { placeMedal } from '../lib/placements';
 
 const STATUS_STYLES: Record<ScheduleItem['status'], string> = {
-  pending: 'bg-slate-900 ring-1 ring-white/5',
-  active: 'bg-amber-400/10 ring-1 ring-amber-400/60',
-  done: 'bg-slate-900/50 ring-1 ring-white/5 opacity-70',
+  pending: 'bg-surface ring-1 ring-line',
+  active: 'bg-accent/10 ring-1 ring-accent/60',
+  done: 'bg-surface/50 ring-1 ring-line opacity-70',
 };
 
 export interface PlacementDisplay {
@@ -63,28 +63,28 @@ export function SortableScheduleItem({
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab touch-none select-none px-1 py-2 text-slate-600 active:cursor-grabbing"
+        className="cursor-grab touch-none select-none px-1 py-2 text-ink-faint active:cursor-grabbing"
         aria-label="Drag to reorder"
       >
         <GripIcon className="h-5 w-5" />
       </button>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate font-bold text-slate-100">{item.name}</p>
+          <p className="truncate font-bold text-ink">{item.name}</p>
           {item.status === 'active' && (
-            <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black text-slate-900">
-              <span className="h-1 w-1 animate-pulse rounded-full bg-slate-900" />
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-black text-on-accent">
+              <span className="h-1 w-1 animate-pulse rounded-full bg-surface" />
               LIVE
             </span>
           )}
           {item.status === 'done' && (
-            <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-black text-slate-400">
+            <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-surface2 px-2 py-0.5 text-[10px] font-black text-ink-muted">
               <CheckIcon className="h-2.5 w-2.5" />
               DONE
             </span>
           )}
         </div>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-faint">
           {item.scoringMode === 'ranked'
             ? `By place · ${placeMedal(1)}${item.placePoints?.[0] ?? 0}`
             : `${item.points} pts`}{' '}
@@ -93,12 +93,12 @@ export function SortableScheduleItem({
         {placements.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
             {placements.map((p) => (
-              <span key={p.place} className="flex items-center gap-1 text-xs font-semibold text-slate-300">
+              <span key={p.place} className="flex items-center gap-1 text-xs font-semibold text-ink-muted">
                 <span>{placeMedal(p.place)}</span>
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
                 {p.name}
                 {item.scoringMode === 'ranked' && item.placePoints?.[p.place - 1] != null && (
-                  <span className="text-slate-500">· {item.placePoints[p.place - 1]}</span>
+                  <span className="text-ink-faint">· {item.placePoints[p.place - 1]}</span>
                 )}
               </span>
             ))}
@@ -109,7 +109,7 @@ export function SortableScheduleItem({
         {item.status === 'pending' && (
           <button
             onClick={onStart}
-            className="rounded-xl bg-amber-400 px-3.5 py-2 text-xs font-bold text-slate-900 transition active:scale-95"
+            className="rounded-xl bg-accent px-3.5 py-2 text-xs font-bold text-on-accent transition active:scale-95"
           >
             Start
           </button>
@@ -117,21 +117,21 @@ export function SortableScheduleItem({
         {item.status === 'active' && (
           <button
             onClick={onFinish}
-            className="rounded-xl bg-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 transition active:scale-95"
+            className="rounded-xl bg-surface3 px-3.5 py-2 text-xs font-bold text-ink transition active:scale-95"
           >
             Done
           </button>
         )}
         <button
           onClick={onEdit}
-          className="p-1.5 text-slate-500 transition active:text-slate-200"
+          className="p-1.5 text-ink-faint transition active:text-ink"
           aria-label="Edit"
         >
           <PencilIcon className="h-4 w-4" />
         </button>
         <button
           onClick={handleDelete}
-          className="p-1.5 text-slate-600 transition active:text-red-400"
+          className="p-1.5 text-ink-faint transition active:text-danger"
           aria-label="Delete"
         >
           <XIcon className="h-4 w-4" />

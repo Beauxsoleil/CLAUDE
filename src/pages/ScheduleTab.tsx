@@ -85,8 +85,8 @@ export function ScheduleTab({
     <div className="flex flex-col gap-4 p-4 pb-32">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg font-bold text-slate-100">Today's Schedule</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-lg font-bold text-ink">Today's Schedule</h2>
+          <p className="text-sm text-ink-faint">
             {schedule.length > 0
               ? `${doneCount}/${schedule.length} done · ~${totalMinutes} min left · drag to reorder`
               : 'Plan the day, stay flexible'}
@@ -97,7 +97,7 @@ export function ScheduleTab({
             setEditing(null);
             setShowModal(true);
           }}
-          className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-amber-400 px-4 py-2.5 font-bold text-slate-900 transition active:scale-95"
+          className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-accent px-4 py-2.5 font-bold text-on-accent transition active:scale-95"
         >
           <PlusIcon className="h-4 w-4" />
           Add
@@ -105,8 +105,8 @@ export function ScheduleTab({
       </div>
 
       {schedule.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center">
-          <p className="text-sm text-slate-500">
+        <div className="rounded-2xl border border-dashed border-line p-6 text-center">
+          <p className="text-sm text-ink-faint">
             No events yet. Add your first event to build the day's plan — you can drag to reorder anytime,
             so it's easy to shuffle the day when plans change.
           </p>

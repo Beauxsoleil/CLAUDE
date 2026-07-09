@@ -10,12 +10,12 @@ export function ScoringModeToggle({
   onChange: (m: ScoringMode) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-800 p-1">
+    <div className="grid grid-cols-2 gap-1 rounded-2xl bg-surface2 p-1">
       <button
         type="button"
         onClick={() => onChange('flat')}
         className={`rounded-xl py-2 text-sm font-bold transition ${
-          mode === 'flat' ? 'bg-amber-400 text-slate-900' : 'text-slate-400'
+          mode === 'flat' ? 'bg-accent text-on-accent' : 'text-ink-muted'
         }`}
       >
         Same for all
@@ -24,7 +24,7 @@ export function ScoringModeToggle({
         type="button"
         onClick={() => onChange('ranked')}
         className={`rounded-xl py-2 text-sm font-bold transition ${
-          mode === 'ranked' ? 'bg-amber-400 text-slate-900' : 'text-slate-400'
+          mode === 'ranked' ? 'bg-accent text-on-accent' : 'text-ink-muted'
         }`}
       >
         Points by place
@@ -57,20 +57,20 @@ export function PlacePointsEditor({
     <div className="flex flex-col gap-2">
       {value.map((pts, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="w-14 shrink-0 text-sm font-bold text-slate-400">{ordinal(i + 1)}</span>
+          <span className="w-14 shrink-0 text-sm font-bold text-ink-muted">{ordinal(i + 1)}</span>
           <input
             type="number"
             inputMode="numeric"
             value={pts}
             onChange={(e) => setAt(i, Number(e.target.value))}
-            className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-slate-100 outline-none focus:border-amber-400"
+            className="min-w-0 flex-1 rounded-xl border border-line bg-surface2 px-4 py-2.5 text-ink outline-none focus:border-accent"
           />
           <button
             type="button"
             onClick={() => removeAt(i)}
             disabled={value.length <= 1}
             aria-label={`Remove ${ordinal(i + 1)} place`}
-            className="p-2 text-slate-600 transition active:text-red-400 disabled:opacity-30"
+            className="p-2 text-ink-faint transition active:text-danger disabled:opacity-30"
           >
             <XIcon className="h-4 w-4" />
           </button>
@@ -79,7 +79,7 @@ export function PlacePointsEditor({
       <button
         type="button"
         onClick={addPlace}
-        className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-800 py-2.5 text-sm font-bold text-slate-300 transition active:scale-[0.98]"
+        className="flex items-center justify-center gap-1.5 rounded-xl bg-surface2 py-2.5 text-sm font-bold text-ink-muted transition active:scale-[0.98]"
       >
         <PlusIcon className="h-4 w-4" />
         Add place

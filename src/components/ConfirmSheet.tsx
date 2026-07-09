@@ -42,22 +42,22 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-t-3xl bg-slate-900 p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ring-1 ring-white/10"
+            className="w-full max-w-md rounded-t-3xl bg-surface p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ring-1 ring-line"
           >
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-700" />
-            <h2 className="text-lg font-bold text-slate-100">{opts.title}</h2>
-            {opts.message && <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{opts.message}</p>}
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-surface3" />
+            <h2 className="text-lg font-bold text-ink">{opts.title}</h2>
+            {opts.message && <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">{opts.message}</p>}
             <div className="mt-5 flex gap-3">
               <button
                 onClick={() => settle(false)}
-                className="flex-1 rounded-2xl bg-slate-800 px-4 py-3.5 font-bold text-slate-300 transition active:scale-[0.98]"
+                className="flex-1 rounded-2xl bg-surface2 px-4 py-3.5 font-bold text-ink-muted transition active:scale-[0.98]"
               >
                 Cancel
               </button>
               <button
                 onClick={() => settle(true)}
                 className={`flex-1 rounded-2xl px-4 py-3.5 font-bold transition active:scale-[0.98] ${
-                  opts.danger ? 'bg-red-500 text-white' : 'bg-amber-400 text-slate-900'
+                  opts.danger ? 'bg-danger text-white' : 'bg-accent text-on-accent'
                 }`}
               >
                 {opts.confirmLabel ?? 'Confirm'}

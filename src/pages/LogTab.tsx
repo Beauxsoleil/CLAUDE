@@ -43,12 +43,12 @@ export function LogTab({
 
   return (
     <div className="flex flex-col gap-2 p-4 pb-32">
-      <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">
+      <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-ink-faint">
         Point history
       </h2>
       {transactions.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center">
-          <p className="mt-2 text-sm text-slate-500">
+        <div className="rounded-2xl border border-dashed border-line p-6 text-center">
+          <p className="mt-2 text-sm text-ink-faint">
             No points awarded yet — every award shows up here, and any entry can be reversed with a tap.
           </p>
         </div>
@@ -57,26 +57,26 @@ export function LogTab({
         const mult = multiplierFor(tx.createdAt);
         const eff = tx.points * mult;
         return (
-        <div key={tx.id} className="flex items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 ring-1 ring-white/5">
+        <div key={tx.id} className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 ring-1 ring-line">
           <span
             className="h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ backgroundColor: teamColors.get(tx.teamId) ?? '#64748b' }}
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold text-slate-100">{tx.teamName}</p>
-            <p className="truncate text-sm text-slate-400">{tx.reason}</p>
-            <p className="text-xs text-slate-600">
+            <p className="truncate font-semibold text-ink">{tx.teamName}</p>
+            <p className="truncate text-sm text-ink-muted">{tx.reason}</p>
+            <p className="text-xs text-ink-faint">
               {formatWhen(tx.createdAt)} · {tx.type === 'event' ? 'Event' : 'Manual'}
             </p>
           </div>
           {mult === 2 && (
-            <span className="shrink-0 rounded-full bg-fuchsia-400/15 px-1.5 py-0.5 text-[10px] font-black text-fuchsia-300 ring-1 ring-fuchsia-400/30">
+            <span className="shrink-0 rounded-full bg-special/15 px-1.5 py-0.5 text-[10px] font-black text-special ring-1 ring-special/30">
               2×
             </span>
           )}
           <span
             className={`shrink-0 text-lg font-black tabular-nums ${
-              eff >= 0 ? 'text-emerald-400' : 'text-red-400'
+              eff >= 0 ? 'text-positive' : 'text-danger'
             }`}
           >
             {eff >= 0 ? '+' : ''}
@@ -84,7 +84,7 @@ export function LogTab({
           </span>
           <button
             onClick={() => handleDelete(tx)}
-            className="shrink-0 p-1 text-slate-600 transition active:text-red-400"
+            className="shrink-0 p-1 text-ink-faint transition active:text-danger"
             aria-label="Undo this entry"
           >
             <XIcon className="h-4 w-4" />
