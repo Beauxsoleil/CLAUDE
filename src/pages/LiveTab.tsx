@@ -4,9 +4,11 @@ import type { Placement, TeamWithTotal } from '../hooks/useCampData';
 import type { Tab } from '../App';
 import { ExtraPointsModal } from '../components/ExtraPointsModal';
 import { useConfirm } from '../components/ConfirmSheet';
-import { CheckIcon, PlayIcon, PlusIcon, ZapIcon } from '../components/icons';
+import { CheckIcon, PlayIcon, PlusIcon, ScreenIcon, ZapIcon } from '../components/icons';
 import { contrastText } from '../lib/colors';
 import { placeMedal } from '../lib/placements';
+import { formatPoints, formatSignedPoints } from '../lib/format';
+import { celebrateAward } from '../lib/celebrate';
 import {
   awardPoints,
   deleteTransaction,
@@ -27,7 +29,9 @@ export function LiveTab({
   nextScheduleItem,
   isTodayDouble,
   eventPlacements,
+  canEdit,
   onNavigate,
+  onPresent,
 }: {
   campId: string;
   teams: TeamWithTotal[];
@@ -36,7 +40,9 @@ export function LiveTab({
   nextScheduleItem: ScheduleItem | null;
   isTodayDouble: boolean;
   eventPlacements: Map<string, Placement[]>;
+  canEdit: boolean;
   onNavigate: (tab: Tab) => void;
+  onPresent: () => void;
 }) {
   const confirm = useConfirm();
   const [showExtra, setShowExtra] = useState(false);
@@ -127,8 +133,9 @@ export function LiveTab({
       scheduleItemId: activeScheduleItem.id,
     });
     const eff = basePoints * multiplier;
+    celebrateAward([team.color], place === 1 || eff >= 1000);
     showUndoToast(
-      `${isRanked ? `${placeMedal(place)} ` : ''}+${eff}${isTodayDouble ? ' (2×)' : ''} to ${team.name}`,
+      `${isRanked ? `${placeMedal(place)} ` : ''}+${formatPoints(eff)}${isTodayDouble ? ' (2×)' : ''} to ${team.name}`,
       txId,
     );
   }
@@ -144,8 +151,9 @@ export function LiveTab({
       scheduleItemId: null,
     });
     const eff = points * multiplier;
+    if (eff > 0) celebrateAward([team?.color ?? '#fbbf24'], eff >= 1000);
     showUndoToast(
-      `${eff > 0 ? '+' : ''}${eff}${isTodayDouble ? ' (2×)' : ''} to ${team?.name ?? 'team'}`,
+      `${formatSignedPoints(eff)}${isTodayDouble ? ' (2×)' : ''} to ${team?.name ?? 'team'}`,
       txId,
     );
   }
@@ -164,7 +172,7 @@ export function LiveTab({
       )}
 
       {/* First-run guided checklist */}
-      {needsSetup && !activeScheduleItem && (
+      {canEdit && needsSetup && !activeScheduleItem && (
         <div className="rounded-3xl bg-surface p-5 ring-1 ring-line">
           <h2 className="text-xl font-bold text-ink">Let's get set up</h2>
           <p className="mt-1 text-sm text-ink-faint">Three quick steps and you're scoring.</p>
@@ -211,7 +219,7 @@ export function LiveTab({
               {placePoints.map((pts, i) => (
                 <span key={i} className="flex items-center gap-1 text-sm">
                   <span>{placeMedal(i + 1)}</span>
-                  {pts * multiplier}
+                  {formatPoints(pts * multiplier)}
                 </span>
               ))}
               {isTodayDouble && (
@@ -220,7 +228,7 @@ export function LiveTab({
             </div>
           ) : (
             <p className="mt-1 font-semibold opacity-80">
-              {activeScheduleItem.points * multiplier} pts to award
+              {formatPoints(activeScheduleItem.points * multiplier)} pts to award
               {isTodayDouble && <span className="ml-1.5 rounded-full bg-on-accent/15 px-2 py-0.5 text-xs font-black">2×</span>}
             </p>
           )}
@@ -239,19 +247,21 @@ export function LiveTab({
             </p>
           </div>
 
-          <button
-            onClick={finishActive}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-surface px-4 py-3 font-bold text-accent-text transition active:scale-[0.98]"
-          >
-            <CheckIcon className="h-4 w-4" />
-            Mark event done
-          </button>
+          {canEdit && (
+            <button
+              onClick={finishActive}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-surface px-4 py-3 font-bold text-accent-text transition active:scale-[0.98]"
+            >
+              <CheckIcon className="h-4 w-4" />
+              Mark event done
+            </button>
+          )}
         </div>
       ) : (
         !needsSetup && (
           <div className="rounded-3xl border border-dashed border-line p-6 text-center">
             <p className="text-ink-muted">No event is running right now.</p>
-            {nextScheduleItem ? (
+            {canEdit && nextScheduleItem ? (
               <button
                 onClick={startNext}
                 className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-br from-accent-hi to-accent-lo px-5 py-3 font-bold text-on-accent shadow-lg shadow-accent/20 transition active:scale-[0.98]"
@@ -259,11 +269,11 @@ export function LiveTab({
                 <PlayIcon className="h-4 w-4" />
                 Start "{nextScheduleItem.name}"
               </button>
-            ) : (
+            ) : canEdit ? (
               <p className="mt-2 text-sm text-ink-faint">
                 All events are done — add more in the Schedule tab if the day isn't over!
               </p>
-            )}
+            ) : null}
           </div>
         )
       )}
@@ -275,12 +285,12 @@ export function LiveTab({
       )}
 
       {/* Award points for active event */}
-      {activeScheduleItem && teams.length > 0 && (
+      {activeScheduleItem && teams.length > 0 && canEdit && (
         <section>
           <h3 className="mb-2.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-ink-faint">
             <span>Tap teams in finishing order</span>
             {isRanked && placeByTeam.size < placePoints.length && (
-              <span className="text-accent-text">next: +{pointsForNextTap * multiplier}</span>
+              <span className="text-accent-text">next: +{formatPoints(pointsForNextTap * multiplier)}</span>
             )}
           </h3>
           <div className="grid grid-cols-2 gap-3">
@@ -301,10 +311,10 @@ export function LiveTab({
                       className="flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-black"
                       style={{ backgroundColor: chipBg }}
                     >
-                      {place ? placeMedal(place) : `+${pointsForNextTap * multiplier}`}
+                      {place ? placeMedal(place) : `+${formatPoints(pointsForNextTap * multiplier)}`}
                     </span>
                   </div>
-                  <span className="text-sm font-medium opacity-75">{team.total} pts</span>
+                  <span className="text-sm font-medium opacity-75">{formatPoints(team.total)} pts</span>
                 </button>
               );
             })}
@@ -315,8 +325,15 @@ export function LiveTab({
       {/* Leaderboard */}
       {teams.length > 0 && (
         <section>
-          <h3 className="mb-2.5 text-xs font-bold uppercase tracking-widest text-ink-faint">
-            Leaderboard
+          <h3 className="mb-2.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-ink-faint">
+            <span>Leaderboard</span>
+            <button
+              onClick={onPresent}
+              className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-ink-muted ring-1 ring-line transition active:scale-95"
+            >
+              <ScreenIcon className="h-3.5 w-3.5" />
+              Present
+            </button>
           </h3>
           <div className="flex flex-col gap-2">
             {teams.map((team, i) => (
@@ -326,7 +343,7 @@ export function LiveTab({
                     {i < 3 ? placeMedal(i + 1) : <span className="text-sm font-bold text-ink-faint">{i + 1}</span>}
                   </span>
                   <span className="flex-1 truncate font-semibold text-ink">{team.name}</span>
-                  <span className="text-lg font-black tabular-nums text-ink">{team.total}</span>
+                  <span className="text-lg font-black tabular-nums text-ink">{formatPoints(team.total)}</span>
                 </div>
                 <div className="ml-10 mt-1.5 h-1 overflow-hidden rounded-full bg-surface2">
                   <div
@@ -353,7 +370,7 @@ export function LiveTab({
         </div>
       )}
 
-      {teams.length > 0 && !toast && (
+      {teams.length > 0 && !toast && canEdit && (
         <button
           onClick={() => setShowExtra(true)}
           className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] right-4 z-40 flex items-center gap-1.5 rounded-full bg-gradient-to-br from-accent-hi to-accent-lo px-5 py-3.5 font-bold text-on-accent shadow-xl shadow-accent/30 transition active:scale-95"

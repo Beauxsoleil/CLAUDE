@@ -29,12 +29,14 @@ export function ScheduleTab({
   presets,
   teams,
   eventPlacements,
+  canEdit,
 }: {
   campId: string;
   schedule: ScheduleItem[];
   presets: EventPreset[];
   teams: Team[];
   eventPlacements: Map<string, Placement[]>;
+  canEdit: boolean;
 }) {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<ScheduleItem | null>(null);
@@ -88,20 +90,22 @@ export function ScheduleTab({
           <h2 className="text-lg font-bold text-ink">Today's Schedule</h2>
           <p className="text-sm text-ink-faint">
             {schedule.length > 0
-              ? `${doneCount}/${schedule.length} done · ~${totalMinutes} min left · drag to reorder`
+              ? `${doneCount}/${schedule.length} done · ~${totalMinutes} min left${canEdit ? ' · drag to reorder' : ''}`
               : 'Plan the day, stay flexible'}
           </p>
         </div>
-        <button
-          onClick={() => {
-            setEditing(null);
-            setShowModal(true);
-          }}
-          className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-accent px-4 py-2.5 font-bold text-on-accent transition active:scale-95"
-        >
-          <PlusIcon className="h-4 w-4" />
-          Add
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => {
+              setEditing(null);
+              setShowModal(true);
+            }}
+            className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-accent px-4 py-2.5 font-bold text-on-accent transition active:scale-95"
+          >
+            <PlusIcon className="h-4 w-4" />
+            Add
+          </button>
+        )}
       </div>
 
       {schedule.length === 0 && (
@@ -121,6 +125,7 @@ export function ScheduleTab({
                 key={item.id}
                 item={item}
                 placements={placementsFor(item.id)}
+                canEdit={canEdit}
                 onStart={() => setActiveScheduleItem(campId, schedule, item.id)}
                 onFinish={() => markScheduleItemDone(campId, item.id)}
                 onEdit={() => {

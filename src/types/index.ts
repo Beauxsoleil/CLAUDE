@@ -4,6 +4,8 @@ export interface Camp {
   createdAt: number;
   /** Local-date keys (YYYY-MM-DD) on which all points count double. */
   doublePointDays?: string[];
+  /** Optional 4-digit scorekeeper PIN; if set, viewer-locked devices need it to edit. */
+  pin?: string;
 }
 
 export interface Team {

@@ -3,6 +3,7 @@ import {
   arrayUnion,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   onSnapshot,
@@ -73,6 +74,7 @@ export async function campExists(rawCode: string): Promise<Camp | null> {
     name: data.name,
     createdAt: data.createdAt,
     doublePointDays: data.doublePointDays ?? [],
+    pin: data.pin ?? undefined,
   };
 }
 
@@ -88,6 +90,7 @@ export function subscribeCamp(campId: string, cb: (camp: Camp | null) => void) {
       name: data.name,
       createdAt: data.createdAt,
       doublePointDays: data.doublePointDays ?? [],
+      pin: data.pin ?? undefined,
     });
   });
 }
@@ -98,6 +101,10 @@ export function setDoublePointDay(campId: string, day: string, enabled: boolean)
       doublePointDays: enabled ? arrayUnion(day) : arrayRemove(day),
     }),
   );
+}
+
+export function setCampPin(campId: string, pin: string | null) {
+  fireWrite(updateDoc(campDoc(campId), { pin: pin ?? deleteField() }));
 }
 
 // --- Teams ---

@@ -10,18 +10,38 @@ export function useCampSession() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // A ?camp=CODE query param (e.g. from a shared QR link) auto-joins that
+    // camp, unless this device is already in a camp (stored camp wins).
+    const campParam = new URLSearchParams(location.search).get('camp');
     const storedId = localStorage.getItem(STORAGE_KEY);
-    if (!storedId) {
+    const target = storedId ?? campParam;
+
+    const stripParam = () => {
+      if (!campParam) return;
+      const url = new URL(location.href);
+      url.searchParams.delete('camp');
+      history.replaceState({}, '', url.pathname + url.search + url.hash);
+    };
+
+    if (!target) {
       setLoading(false);
+      stripParam();
       return;
     }
-    campExists(storedId)
+    campExists(target)
       .then((found) => {
-        if (found) setCamp(found);
-        else localStorage.removeItem(STORAGE_KEY);
+        if (found) {
+          setCamp(found);
+          localStorage.setItem(STORAGE_KEY, found.id);
+        } else if (storedId) {
+          localStorage.removeItem(STORAGE_KEY);
+        }
       })
       .catch(() => setError('Could not reach the server. Check your connection.'))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        stripParam();
+      });
   }, []);
 
   const join = useCallback(async (code: string) => {

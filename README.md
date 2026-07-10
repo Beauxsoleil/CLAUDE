@@ -15,7 +15,9 @@ like a regular app: its own icon, full screen, no browser chrome.
 
 - **Camp** — the top-level container. Creating one generates a short 5-letter
   code (e.g. `P9NCF`). Share that code with other counselors' phones so they
-  can join the same live camp instead of creating their own.
+  can join the same live camp instead of creating their own — or let them
+  **scan the join QR** (Setup → Show join QR); their camera opens a link that
+  joins automatically.
 - **Teams** — the groups competing for points.
 - **Event presets** — reusable event templates (name, points, estimated
   duration) so common activities can be awarded in one tap without retyping
@@ -42,6 +44,21 @@ like a regular app: its own icon, full screen, no browser chrome.
   instantly.
 - **History** — a running, deletable log of every point transaction (with 2×
   badges on double days), so you can audit or undo an accidental award.
+- **Scoreboard / present mode** — the "Present" button on the Live leaderboard
+  opens a full-screen, large-type standings view to cast to a TV or project at
+  the evening rally. Bars animate as scores change and the screen stays awake
+  while it's open (where the browser supports it).
+- **Trends** — the History tab has a **Log / Trends** toggle. Trends shows a
+  cumulative points-over-time line per team (in each team's color) and a
+  per-event finishing-order breakdown.
+- **Celebration** — awarding points fires a short confetti burst (bigger for a
+  1st-place finish or a large award) plus a haptic tap where supported. Both
+  respect the OS "reduce motion" setting.
+- **Viewer lock** — set a 4-digit scorekeeper PIN in Setup, then switch spare
+  or kid-facing devices to **viewer mode**: they can watch the scoreboard but
+  every award/edit/delete control is hidden until someone re-enters the PIN.
+  (This is a soft guard against casual tampering, not hard security — see
+  *Notes and limitations*.)
 - **Offline-ready** — points awarded without signal apply to the scoreboard
   immediately, an "Offline" banner shows in the header, and everything syncs
   automatically when connection returns.
@@ -49,14 +66,19 @@ like a regular app: its own icon, full screen, no browser chrome.
   ("Midnight") look and a minimalist warm-beige ("Sandstone") look. The
   choice is saved per device, so each counselor can pick their own. Colors
   are driven by semantic CSS-variable tokens, so new themes are easy to add.
+- **Update prompt** — when a new version is deployed, the app shows a
+  "New version available — Refresh" banner instead of silently caching the
+  old one.
 
 ## Tech stack
 
 - React + TypeScript + Vite
 - Tailwind CSS v4
 - Firebase Firestore (realtime sync, offline-tolerant writes)
-- `vite-plugin-pwa` (installable, offline app-shell caching)
+- `vite-plugin-pwa` (installable, offline app-shell caching, update prompt)
 - `@dnd-kit` for the drag-to-reorder schedule
+- `qrcode` for the join QR, `canvas-confetti` for award celebration
+- Points-over-time chart is dependency-free inline SVG
 
 ## 1. Create a Firebase project (free tier is enough)
 
@@ -151,6 +173,13 @@ environment variables in their dashboard.
   that camp's data. This is intentional for frictionless shared use among
   trusted staff on one camp's own devices; don't reuse a camp code across
   events you want kept separate.
+- **Viewer lock is a soft guard, not real security.** It hides the editing
+  controls on a locked device so campers holding a viewing phone can't
+  casually change scores, but a determined person with the camp code could
+  still write through the API. The scorekeeper PIN is stored on the camp
+  document (readable), so treat it as a "keep honest people honest" lock, not
+  a password. The Firestore rules allow updating only the `doublePointDays`
+  and `pin` fields on a camp after creation.
 - Team totals are computed by summing the transaction log on each device,
   so the History tab is also your audit trail and undo mechanism (delete a
   transaction to reverse it).

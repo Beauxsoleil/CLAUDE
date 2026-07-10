@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TeamWithTotal } from '../hooks/useCampData';
 import { contrastText } from '../lib/colors';
+import { formatPoints } from '../lib/format';
 
 const QUICK_AMOUNTS = [5, 10, 25, 50];
 
@@ -147,7 +148,7 @@ export function ExtraPointsModal({
               mode === 'deduct' ? 'bg-danger text-white' : 'bg-accent text-on-accent'
             }`}
           >
-            {mode === 'deduct' ? `Deduct −${Math.abs(amount)}` : `Award +${Math.abs(amount)}`}
+            {mode === 'deduct' ? `Deduct −${formatPoints(Math.abs(amount))}` : `Award +${formatPoints(Math.abs(amount))}`}
           </button>
         </div>
       </form>

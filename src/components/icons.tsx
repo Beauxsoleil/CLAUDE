@@ -164,6 +164,38 @@ export function WifiOffIcon({ className }: IconProps) {
   );
 }
 
+export function QrIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <path d="M14 14h3v3" />
+      <path d="M21 14v7h-7" />
+      <path d="M17 21v-1" />
+    </Svg>
+  );
+}
+
+export function ScreenIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="2" y="3" width="20" height="14" rx="2" />
+      <path d="M8 21h8" />
+      <path d="M12 17v4" />
+    </Svg>
+  );
+}
+
+export function LockIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </Svg>
+  );
+}
+
 export function TentIcon({ className }: IconProps) {
   return (
     <Svg className={className}>

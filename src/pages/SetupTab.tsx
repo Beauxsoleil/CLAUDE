@@ -4,15 +4,18 @@ import type { TeamWithTotal } from '../hooks/useCampData';
 import { TEAM_COLORS, contrastText } from '../lib/colors';
 import { useConfirm } from '../components/ConfirmSheet';
 import { PlacePointsEditor, ScoringModeToggle } from '../components/ScoringControls';
-import { CheckIcon, XIcon, ZapIcon } from '../components/icons';
+import { CheckIcon, LockIcon, QrIcon, XIcon, ZapIcon } from '../components/icons';
+import { QrModal } from '../components/QrModal';
 import { formatDayKey, todayKey } from '../lib/dates';
 import { placeMedal } from '../lib/placements';
+import { formatPoints } from '../lib/format';
 import { THEMES, type ThemeId } from '../hooks/useTheme';
 import {
   addPreset,
   addTeam,
   deletePreset,
   deleteTeam,
+  setCampPin,
   setDoublePointDay,
   updateTeam,
 } from '../lib/campRepo';
@@ -25,6 +28,10 @@ export function SetupTab({
   doubleDays,
   theme,
   setTheme,
+  canEdit,
+  campPin,
+  onLock,
+  onRequestUnlock,
   onLeave,
 }: {
   campId: string;
@@ -34,6 +41,10 @@ export function SetupTab({
   doubleDays: Set<string>;
   theme: ThemeId;
   setTheme: (t: ThemeId) => void;
+  canEdit: boolean;
+  campPin: string | undefined;
+  onLock: () => void;
+  onRequestUnlock: () => void;
   onLeave: () => void;
 }) {
   const confirm = useConfirm();
@@ -46,6 +57,39 @@ export function SetupTab({
   const [presetPlacePoints, setPresetPlacePoints] = useState<number[]>([5000, 3000, 1000]);
   const [copied, setCopied] = useState(false);
   const [customDay, setCustomDay] = useState('');
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [showQr, setShowQr] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+
+  function savePin(e: React.FormEvent) {
+    e.preventDefault();
+    if (pinInput.length === 4) {
+      setCampPin(campId, pinInput);
+      setPinInput('');
+    }
+  }
+
+  async function clearPin() {
+    const ok = await confirm({
+      title: 'Remove scorekeeper PIN?',
+      message: 'Viewer devices could then be unlocked by anyone, without a PIN.',
+      confirmLabel: 'Remove PIN',
+      danger: true,
+    });
+    if (ok) setCampPin(campId, null);
+  }
+
+  async function switchToViewer() {
+    const ok = await confirm({
+      title: 'Switch this device to viewer mode?',
+      message: campPin
+        ? 'Award and edit controls hide until you re-enter the scorekeeper PIN.'
+        : 'Award and edit controls hide. Set a PIN first if you want to require it to switch back.',
+      confirmLabel: 'Viewer mode',
+    });
+    if (ok) onLock();
+  }
 
   const today = todayKey();
   const isTodayDouble = doubleDays.has(today);
@@ -69,6 +113,19 @@ export function SetupTab({
     const idx = TEAM_COLORS.indexOf(current);
     const next = TEAM_COLORS[(idx + 1) % TEAM_COLORS.length];
     void updateTeam(campId, teamId, { color: next });
+  }
+
+  function startRename(teamId: string, current: string) {
+    setEditingTeamId(teamId);
+    setEditingName(current);
+  }
+
+  function commitRename() {
+    if (editingTeamId) {
+      const name = editingName.trim();
+      if (name) updateTeam(campId, editingTeamId, { name });
+    }
+    setEditingTeamId(null);
   }
 
   async function handleDeleteTeam(teamId: string, name: string) {
@@ -140,7 +197,15 @@ export function SetupTab({
           {campId}
         </button>
         <p className="mt-2 h-4 text-xs text-accent-text">{copied ? 'Copied to clipboard!' : 'Tap to copy'}</p>
+        <button
+          onClick={() => setShowQr(true)}
+          className="mx-auto mt-3 flex items-center gap-1.5 rounded-full bg-surface2 px-4 py-2 text-sm font-bold text-ink-muted transition active:scale-95"
+        >
+          <QrIcon className="h-4 w-4" />
+          Show join QR
+        </button>
       </div>
+      {showQr && <QrModal campId={campId} onClose={() => setShowQr(false)} />}
 
       {/* Appearance / theme */}
       <section>
@@ -188,6 +253,25 @@ export function SetupTab({
         </div>
       </section>
 
+      {/* Viewer-mode notice (shown when this device is locked) */}
+      {!canEdit && (
+        <div className="flex items-center gap-3 rounded-2xl bg-surface p-4 ring-1 ring-line">
+          <LockIcon className="h-5 w-5 shrink-0 text-ink-muted" />
+          <div className="flex-1">
+            <p className="font-semibold text-ink">Viewer mode</p>
+            <p className="text-sm text-ink-faint">This device can watch but not change scores.</p>
+          </div>
+          <button
+            onClick={onRequestUnlock}
+            className="shrink-0 rounded-xl bg-accent px-4 py-2 text-sm font-bold text-on-accent transition active:scale-95"
+          >
+            Unlock
+          </button>
+        </div>
+      )}
+
+      {canEdit && (
+      <>
       {/* Double point days */}
       <section>
         <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-ink-faint">
@@ -307,8 +391,28 @@ export function SetupTab({
                 className="h-6 w-6 shrink-0 rounded-full transition active:scale-90"
                 style={{ backgroundColor: team.color }}
               />
-              <span className="flex-1 truncate font-semibold text-ink">{team.name}</span>
-              <span className="text-sm tabular-nums text-ink-faint">{team.total} pts</span>
+              {editingTeamId === team.id ? (
+                <input
+                  autoFocus
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onBlur={commitRename}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitRename();
+                    if (e.key === 'Escape') setEditingTeamId(null);
+                  }}
+                  className="min-w-0 flex-1 rounded-lg border border-line bg-surface2 px-2 py-1 font-semibold text-ink outline-none focus:border-accent"
+                />
+              ) : (
+                <button
+                  onClick={() => startRename(team.id, team.name)}
+                  className="min-w-0 flex-1 truncate text-left font-semibold text-ink"
+                  aria-label={`Rename ${team.name}`}
+                >
+                  {team.name}
+                </button>
+              )}
+              <span className="text-sm tabular-nums text-ink-faint">{formatPoints(team.total)} pts</span>
               <button
                 onClick={() => handleDeleteTeam(team.id, team.name)}
                 className="p-1 text-ink-faint transition active:text-danger"
@@ -319,7 +423,9 @@ export function SetupTab({
             </div>
           ))}
           {teams.length === 0 && (
-            <p className="text-sm text-ink-faint">No teams yet — add your first one above. Tap a team's dot anytime to change its color.</p>
+            <p className="text-sm text-ink-faint">
+              No teams yet — add your first one above. Tap a team's name to rename it, or its dot to change color.
+            </p>
           )}
         </div>
       </section>
@@ -391,8 +497,8 @@ export function SetupTab({
               <span className="min-w-0 flex-1 truncate font-semibold text-ink">{preset.name}</span>
               <span className="shrink-0 text-sm text-ink-faint">
                 {preset.scoringMode === 'ranked'
-                  ? `By place · ${placeMedal(1)}${preset.placePoints?.[0] ?? 0}`
-                  : `${preset.points} pts`}{' '}
+                  ? `By place · ${placeMedal(1)}${formatPoints(preset.placePoints?.[0] ?? 0)}`
+                  : `${formatPoints(preset.points)} pts`}{' '}
                 · ~{preset.durationMin}m
               </span>
               <button
@@ -407,6 +513,54 @@ export function SetupTab({
           {presets.length === 0 && <p className="text-sm text-ink-faint">No presets yet.</p>}
         </div>
       </section>
+
+      {/* Scoring lock */}
+      <section>
+        <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-ink-faint">Scoring lock</h2>
+        <p className="mb-2.5 text-sm text-ink-faint">
+          Set a scorekeeper PIN, then switch spare/kid-facing devices to viewer mode so they can watch
+          the scoreboard but can't change points.
+        </p>
+        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-3 ring-1 ring-line">
+          <form onSubmit={savePin} className="flex gap-2">
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+              placeholder={campPin ? 'Change PIN (4 digits)' : 'Set PIN (4 digits)'}
+              className="min-w-0 flex-1 rounded-xl border border-line bg-surface2 px-4 py-3 tracking-[0.3em] text-ink outline-none focus:border-accent"
+            />
+            <button
+              type="submit"
+              disabled={pinInput.length !== 4}
+              className="shrink-0 rounded-xl bg-accent px-4 py-3 font-bold text-on-accent transition active:scale-95 disabled:opacity-40"
+            >
+              Save
+            </button>
+          </form>
+          <div className="flex items-center gap-2">
+            <span className="flex-1 text-sm text-ink-faint">
+              {campPin ? 'PIN is set.' : 'No PIN set.'}
+            </span>
+            {campPin && (
+              <button onClick={clearPin} className="text-sm font-semibold text-danger active:opacity-70">
+                Remove PIN
+              </button>
+            )}
+          </div>
+          <button
+            onClick={switchToViewer}
+            className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-surface2 px-4 py-3 font-bold text-ink-muted transition active:scale-[0.98]"
+          >
+            <LockIcon className="h-4 w-4" />
+            Switch this device to viewer mode
+          </button>
+        </div>
+      </section>
+      </>
+      )}
 
       <button
         onClick={handleLeave}

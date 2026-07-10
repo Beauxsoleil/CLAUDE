@@ -24,6 +24,7 @@ export function useCampData(campId: string | null) {
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [doubleDays, setDoubleDays] = useState<Set<string>>(new Set());
+  const [campPin, setCampPin] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export function useCampData(campId: string | null) {
       setSchedule([]);
       setTransactions([]);
       setDoubleDays(new Set());
+      setCampPin(undefined);
       setLoading(false);
       return;
     }
@@ -44,6 +46,7 @@ export function useCampData(campId: string | null) {
     };
     const unsubCamp = subscribeCamp(campId, (camp) => {
       setDoubleDays(new Set(camp?.doublePointDays ?? []));
+      setCampPin(camp?.pin);
       settle();
     });
     const unsubTeams = subscribeTeams(campId, (v) => {
@@ -128,6 +131,7 @@ export function useCampData(campId: string | null) {
     schedule,
     transactions,
     doubleDays,
+    campPin,
     isTodayDouble,
     multiplierFor,
     eventPlacements,

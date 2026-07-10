@@ -4,6 +4,7 @@ import type { ScheduleItem } from '../types';
 import { useConfirm } from './ConfirmSheet';
 import { CheckIcon, GripIcon, PencilIcon, XIcon } from './icons';
 import { placeMedal } from '../lib/placements';
+import { formatPoints } from '../lib/format';
 
 const STATUS_STYLES: Record<ScheduleItem['status'], string> = {
   pending: 'bg-surface ring-1 ring-line',
@@ -20,6 +21,7 @@ export interface PlacementDisplay {
 export function SortableScheduleItem({
   item,
   placements = [],
+  canEdit = true,
   onStart,
   onFinish,
   onEdit,
@@ -27,6 +29,7 @@ export function SortableScheduleItem({
 }: {
   item: ScheduleItem;
   placements?: PlacementDisplay[];
+  canEdit?: boolean;
   onStart: () => void;
   onFinish: () => void;
   onEdit: () => void;
@@ -60,14 +63,18 @@ export function SortableScheduleItem({
       style={style}
       className={`flex items-center gap-1.5 rounded-2xl p-3 ${STATUS_STYLES[item.status]}`}
     >
-      <button
-        {...attributes}
-        {...listeners}
-        className="cursor-grab touch-none select-none px-1 py-2 text-ink-faint active:cursor-grabbing"
-        aria-label="Drag to reorder"
-      >
-        <GripIcon className="h-5 w-5" />
-      </button>
+      {canEdit ? (
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab touch-none select-none px-1 py-2 text-ink-faint active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          <GripIcon className="h-5 w-5" />
+        </button>
+      ) : (
+        <span className="w-2" />
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate font-bold text-ink">{item.name}</p>
@@ -86,8 +93,8 @@ export function SortableScheduleItem({
         </div>
         <p className="text-sm text-ink-faint">
           {item.scoringMode === 'ranked'
-            ? `By place · ${placeMedal(1)}${item.placePoints?.[0] ?? 0}`
-            : `${item.points} pts`}{' '}
+            ? `By place · ${placeMedal(1)}${formatPoints(item.placePoints?.[0] ?? 0)}`
+            : `${formatPoints(item.points)} pts`}{' '}
           · ~{item.durationMin} min
         </p>
         {placements.length > 0 && (
@@ -98,45 +105,47 @@ export function SortableScheduleItem({
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
                 {p.name}
                 {item.scoringMode === 'ranked' && item.placePoints?.[p.place - 1] != null && (
-                  <span className="text-ink-faint">· {item.placePoints[p.place - 1]}</span>
+                  <span className="text-ink-faint">· {formatPoints(item.placePoints[p.place - 1])}</span>
                 )}
               </span>
             ))}
           </div>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-1">
-        {item.status === 'pending' && (
+      {canEdit && (
+        <div className="flex shrink-0 items-center gap-1">
+          {item.status === 'pending' && (
+            <button
+              onClick={onStart}
+              className="rounded-xl bg-accent px-3.5 py-2 text-xs font-bold text-on-accent transition active:scale-95"
+            >
+              Start
+            </button>
+          )}
+          {item.status === 'active' && (
+            <button
+              onClick={onFinish}
+              className="rounded-xl bg-surface3 px-3.5 py-2 text-xs font-bold text-ink transition active:scale-95"
+            >
+              Done
+            </button>
+          )}
           <button
-            onClick={onStart}
-            className="rounded-xl bg-accent px-3.5 py-2 text-xs font-bold text-on-accent transition active:scale-95"
+            onClick={onEdit}
+            className="p-1.5 text-ink-faint transition active:text-ink"
+            aria-label="Edit"
           >
-            Start
+            <PencilIcon className="h-4 w-4" />
           </button>
-        )}
-        {item.status === 'active' && (
           <button
-            onClick={onFinish}
-            className="rounded-xl bg-surface3 px-3.5 py-2 text-xs font-bold text-ink transition active:scale-95"
+            onClick={handleDelete}
+            className="p-1.5 text-ink-faint transition active:text-danger"
+            aria-label="Delete"
           >
-            Done
+            <XIcon className="h-4 w-4" />
           </button>
-        )}
-        <button
-          onClick={onEdit}
-          className="p-1.5 text-ink-faint transition active:text-ink"
-          aria-label="Edit"
-        >
-          <PencilIcon className="h-4 w-4" />
-        </button>
-        <button
-          onClick={handleDelete}
-          className="p-1.5 text-ink-faint transition active:text-danger"
-          aria-label="Delete"
-        >
-          <XIcon className="h-4 w-4" />
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { useCampSession } from './hooks/useCampSession';
 import { useCampData } from './hooks/useCampData';
 import { useTheme, type ThemeId } from './hooks/useTheme';
+import { useLock } from './hooks/useLock';
+import { UnlockSheet } from './components/UnlockSheet';
+import { ScoreboardView } from './components/ScoreboardView';
 import { CampGate } from './components/CampGate';
 import { LiveTab } from './pages/LiveTab';
 import { ScheduleTab } from './pages/ScheduleTab';
@@ -12,6 +15,7 @@ import {
   CheckIcon,
   CopyIcon,
   HistoryIcon,
+  LockIcon,
   SlidersIcon,
   TentIcon,
   TrophyIcon,
@@ -92,7 +96,15 @@ function CampApp({
 }) {
   const data = useCampData(campId);
   const online = useOnline();
+  const { canEdit, hasPin, lock, unlock } = useLock(campId, data.campPin);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [showUnlock, setShowUnlock] = useState(false);
+  const [presenting, setPresenting] = useState(false);
+
+  function requestUnlock() {
+    if (hasPin) setShowUnlock(true);
+    else unlock('');
+  }
 
   async function copyCode() {
     try {
@@ -114,14 +126,25 @@ function CampApp({
       <header className="sticky top-0 z-30 border-b border-line bg-canvas/90 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3">
           <h1 className="min-w-0 truncate text-lg font-bold tracking-tight">{campName}</h1>
-          <button
-            onClick={copyCode}
-            className="flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-bold tracking-widest text-accent-text ring-1 ring-line transition active:scale-95"
-            aria-label="Copy camp code"
-          >
-            {campId}
-            {codeCopied ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5 opacity-60" />}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {!canEdit && (
+              <button
+                onClick={requestUnlock}
+                className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-bold text-ink-muted ring-1 ring-line transition active:scale-95"
+              >
+                <LockIcon className="h-3.5 w-3.5" />
+                Viewer
+              </button>
+            )}
+            <button
+              onClick={copyCode}
+              className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-bold tracking-widest text-accent-text ring-1 ring-line transition active:scale-95"
+              aria-label="Copy camp code"
+            >
+              {campId}
+              {codeCopied ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5 opacity-60" />}
+            </button>
+          </div>
         </div>
         {!online && (
           <div className="flex items-center justify-center gap-1.5 bg-accent/15 py-1 text-xs font-semibold text-accent-text">
@@ -141,7 +164,9 @@ function CampApp({
             nextScheduleItem={data.nextScheduleItem}
             isTodayDouble={data.isTodayDouble}
             eventPlacements={data.eventPlacements}
+            canEdit={canEdit}
             onNavigate={setTab}
+            onPresent={() => setPresenting(true)}
           />
         )}
         {tab === 'schedule' && (
@@ -151,6 +176,7 @@ function CampApp({
             presets={data.presets}
             teams={data.teams}
             eventPlacements={data.eventPlacements}
+            canEdit={canEdit}
           />
         )}
         {tab === 'setup' && (
@@ -162,6 +188,10 @@ function CampApp({
             doubleDays={data.doubleDays}
             theme={theme}
             setTheme={setTheme}
+            canEdit={canEdit}
+            campPin={data.campPin}
+            onLock={lock}
+            onRequestUnlock={requestUnlock}
             onLeave={onLeave}
           />
         )}
@@ -171,9 +201,21 @@ function CampApp({
             teams={data.teams}
             transactions={data.transactions}
             multiplierFor={data.multiplierFor}
+            canEdit={canEdit}
           />
         )}
       </main>
+
+      {presenting && (
+        <ScoreboardView
+          teams={data.teamsWithTotals}
+          activeScheduleItem={data.activeScheduleItem}
+          isTodayDouble={data.isTodayDouble}
+          onClose={() => setPresenting(false)}
+        />
+      )}
+
+      {showUnlock && <UnlockSheet onUnlock={unlock} onClose={() => setShowUnlock(false)} />}
 
       <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-line bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur">
         <div className="mx-auto flex max-w-lg">
