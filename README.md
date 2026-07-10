@@ -147,16 +147,65 @@ it stops.
 ## 4. Deploy so it's reachable from any phone
 
 Any static host works since this is a client-only app. Firebase Hosting is
-the simplest since it's already set up in `firebase.json`:
+the simplest since it's already set up in `firebase.json`.
+
+**First-time setup (once):**
 
 ```bash
-npm run build
-firebase deploy --only hosting
+npm install -g firebase-tools   # or prefix the commands below with npx
+firebase login
+firebase use --add              # pick your project, alias it "default"
 ```
 
-Vercel or Netlify work too — just point them at this repo with build command
+`firebase use --add` writes a `.firebaserc` so future deploys don't prompt for
+a project.
+
+**Deploy:**
+
+```bash
+npm run deploy            # builds, THEN deploys hosting + rules
+# or, more granular:
+npm run deploy:hosting    # builds + deploys only the web app
+npm run deploy:rules      # deploys only firestore.rules
+```
+
+> **Why `npm run deploy` and not `firebase deploy`?** `firebase deploy` only
+> *uploads* the `dist/` folder — it does not build. If you run it after a build
+> that failed (or forgot to build), it happily publishes the **old** bundle and
+> the site "deploys" but never changes. `npm run deploy` runs the build first
+> and stops if the build fails, so a broken or stale build can't ship.
+
+Vercel or Netlify work too — point them at this repo with build command
 `npm run build` and output directory `dist`, and set the same `VITE_FIREBASE_*`
-environment variables in their dashboard.
+environment variables in their dashboard. (Those hosts don't deploy Firestore
+rules, so still run `npm run deploy:rules` or edit rules in the Firebase console.)
+
+## 4b. Deploying an update (and actually seeing it)
+
+"I deployed but the site still shows the old version" is almost always a build
+or cache issue, not a Firebase problem. This checklist avoids both:
+
+1. `git pull` then `npm install` (in case dependencies changed).
+2. `npm run deploy`. **Watch the output** — if the build prints red errors,
+   stop and fix them; nothing new ships until the build passes.
+3. If `firestore.rules` changed (it did for the viewer-lock PIN), run
+   `npm run deploy:rules` once — or paste the contents of `firestore.rules`
+   into **Firebase console → Firestore → Rules → Publish** (no CLI needed).
+4. **Clear the old cached version once.** Because this is an installed PWA, your
+   phone/browser serves the cached copy until the new service worker takes over:
+   - Desktop: hard-refresh twice (⌘/Ctrl+Shift+R), or open the URL in a private
+     window.
+   - iPhone home-screen app: swipe it fully closed, then reopen once or twice.
+   After this first clear, the app shows a **"New version available — Refresh"**
+   banner on future deploys, so you won't have to do this again.
+5. **Confirm it's live.** Open the **Setup** tab and check the small
+   **`Build <timestamp> UTC`** line at the very bottom. If it matches the deploy
+   you just ran, you're on the new version; if it shows an older time, you're
+   still looking at cache — repeat step 4.
+
+The app now sends `no-cache` headers for `index.html` and the service worker
+(see `firebase.json`), so once the old worker is cleared, new deploys are picked
+up promptly instead of being masked by the browser cache.
 
 ## 5. Install it on an iPhone
 

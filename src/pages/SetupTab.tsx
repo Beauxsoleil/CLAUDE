@@ -568,6 +568,8 @@ export function SetupTab({
       >
         Leave this camp
       </button>
+
+      <p className="text-center text-xs text-ink-faint">Build {__BUILD_ID__} UTC</p>
     </div>
   );
 }
