@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Team, Transaction } from '../types';
-import { useConfirm } from '../components/ConfirmSheet';
+import { useConfirm } from '../components/confirmContext';
 import { XIcon } from '../components/icons';
 import { TrendChart } from '../components/TrendChart';
 import { formatSignedPoints } from '../lib/format';

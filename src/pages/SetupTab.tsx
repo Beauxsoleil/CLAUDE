@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { EventPreset, ScoringMode } from '../types';
 import type { TeamWithTotal } from '../hooks/useCampData';
 import { TEAM_COLORS, contrastText } from '../lib/colors';
-import { useConfirm } from '../components/ConfirmSheet';
+import { useConfirm } from '../components/confirmContext';
 import { PlacePointsEditor, ScoringModeToggle } from '../components/ScoringControls';
 import { CheckIcon, LockIcon, QrIcon, XIcon, ZapIcon } from '../components/icons';
 import { QrModal } from '../components/QrModal';

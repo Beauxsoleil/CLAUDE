@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { TeamWithTotal } from '../hooks/useCampData';
 import { contrastText } from '../lib/colors';
-import { formatPoints } from '../lib/format';
+import { clampInt, formatPoints } from '../lib/format';
+import { BottomSheet } from './BottomSheet';
 
 const QUICK_AMOUNTS = [5, 10, 25, 50];
 
@@ -29,13 +30,8 @@ export function ExtraPointsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
-        className="w-full max-w-md rounded-t-3xl bg-surface p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ring-1 ring-line"
-      >
-        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-surface3" />
+    <BottomSheet onClose={onClose} label={mode === 'deduct' ? 'Deduct points' : 'Award extra points'}>
+      <form onSubmit={submit}>
         <h2 className="mb-4 text-lg font-bold text-ink">
           {mode === 'deduct' ? 'Deduct points' : 'Award extra points'}
         </h2>
@@ -97,7 +93,7 @@ export function ExtraPointsModal({
             type="number" inputMode="numeric"
             min={0}
             value={amount}
-            onChange={(e) => setAmount(Math.abs(Number(e.target.value)))}
+            onChange={(e) => setAmount(clampInt(Math.abs(Number(e.target.value))))}
             className="w-full rounded-xl border border-line bg-surface2 px-4 py-3 text-center text-2xl font-black tabular-nums text-ink outline-none focus:border-accent"
           />
           <button
@@ -152,6 +148,6 @@ export function ExtraPointsModal({
           </button>
         </div>
       </form>
-    </div>
+    </BottomSheet>
   );
 }

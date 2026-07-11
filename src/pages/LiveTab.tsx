@@ -3,7 +3,7 @@ import type { ScheduleItem } from '../types';
 import type { Placement, TeamWithTotal } from '../hooks/useCampData';
 import type { Tab } from '../App';
 import { ExtraPointsModal } from '../components/ExtraPointsModal';
-import { useConfirm } from '../components/ConfirmSheet';
+import { useConfirm } from '../components/confirmContext';
 import { CheckIcon, PlayIcon, PlusIcon, ScreenIcon, ZapIcon } from '../components/icons';
 import { contrastText } from '../lib/colors';
 import { placeMedal } from '../lib/placements';

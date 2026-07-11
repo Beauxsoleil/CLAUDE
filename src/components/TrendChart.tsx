@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { Team, Transaction } from '../types';
 import { formatPoints } from '../lib/format';
+import { computeTrendSeries } from '../lib/trends';
 
 // Chart geometry (viewBox units; the SVG scales to its container width).
 const W = 320;
@@ -9,11 +10,6 @@ const PAD_L = 40;
 const PAD_R = 12;
 const PAD_T = 12;
 const PAD_B = 22;
-
-interface Pt {
-  t: number;
-  v: number;
-}
 
 /**
  * Cumulative points over time, one line per team in the team's own color.
@@ -29,37 +25,10 @@ export function TrendChart({
   transactions: Transaction[];
   multiplierFor: (ts: number) => number;
 }) {
-  const { series, minT, maxT, minV, maxV } = useMemo(() => {
-    const asc = [...transactions].sort((a, b) => a.createdAt - b.createdAt);
-    const lo = asc.length ? asc[0].createdAt : 0;
-    const hi = asc.length ? asc[asc.length - 1].createdAt : 1;
-    const rangeT = hi === lo ? 1 : hi - lo;
-
-    const s = teams
-      .map((team) => {
-        let cum = 0;
-        const pts: Pt[] = [{ t: lo, v: 0 }];
-        for (const tx of asc) {
-          if (tx.teamId === team.id) {
-            cum += tx.points * multiplierFor(tx.createdAt);
-            pts.push({ t: tx.createdAt, v: cum });
-          }
-        }
-        pts.push({ t: hi, v: cum });
-        return { team, pts, total: cum };
-      })
-      .filter((x) => x.pts.length > 2); // only teams that have received points
-
-    let vMax = 1;
-    let vMin = 0;
-    for (const { pts } of s) {
-      for (const p of pts) {
-        if (p.v > vMax) vMax = p.v;
-        if (p.v < vMin) vMin = p.v;
-      }
-    }
-    return { series: s, minT: lo, maxT: lo + rangeT, minV: vMin, maxV: vMax };
-  }, [teams, transactions, multiplierFor]);
+  const { series, minT, maxT, minV, maxV } = useMemo(
+    () => computeTrendSeries(teams, transactions, multiplierFor),
+    [teams, transactions, multiplierFor],
+  );
 
   if (series.length === 0) {
     return (

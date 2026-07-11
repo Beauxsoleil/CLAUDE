@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { EventPreset, ScheduleItem, ScoringMode } from '../types';
 import { PlacePointsEditor, ScoringModeToggle } from './ScoringControls';
 import { placeMedal } from '../lib/placements';
+import { clampInt } from '../lib/format';
+import { BottomSheet } from './BottomSheet';
 
 export interface ScheduleItemFormValue {
   name: string;
@@ -60,13 +62,12 @@ export function ScheduleItemModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-surface p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ring-1 ring-line"
-      >
-        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-surface3" />
+    <BottomSheet
+      onClose={onClose}
+      label={initial ? 'Edit event' : 'Add event to schedule'}
+      className="max-h-[90vh] overflow-y-auto"
+    >
+      <form onSubmit={submit}>
         <h2 className="mb-4 text-lg font-bold text-ink">
           {initial ? 'Edit event' : 'Add event to schedule'}
         </h2>
@@ -124,7 +125,7 @@ export function ScheduleItemModal({
               <input
                 type="number" inputMode="numeric"
                 value={points}
-                onChange={(e) => setPoints(Number(e.target.value))}
+                onChange={(e) => setPoints(clampInt(Number(e.target.value)))}
                 className="mt-1 w-full rounded-xl border border-line bg-surface2 px-4 py-3 text-ink outline-none focus:border-accent"
               />
             </label>
@@ -133,7 +134,7 @@ export function ScheduleItemModal({
               <input
                 type="number" inputMode="numeric"
                 value={durationMin}
-                onChange={(e) => setDurationMin(Number(e.target.value))}
+                onChange={(e) => setDurationMin(clampInt(Number(e.target.value)))}
                 className="mt-1 w-full rounded-xl border border-line bg-surface2 px-4 py-3 text-ink outline-none focus:border-accent"
               />
             </label>
@@ -149,7 +150,7 @@ export function ScheduleItemModal({
               <input
                 type="number" inputMode="numeric"
                 value={durationMin}
-                onChange={(e) => setDurationMin(Number(e.target.value))}
+                onChange={(e) => setDurationMin(clampInt(Number(e.target.value)))}
                 className="mt-1 w-full rounded-xl border border-line bg-surface2 px-4 py-3 text-ink outline-none focus:border-accent"
               />
             </label>
@@ -173,6 +174,6 @@ export function ScheduleItemModal({
           </button>
         </div>
       </form>
-    </div>
+    </BottomSheet>
   );
 }

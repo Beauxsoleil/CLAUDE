@@ -4,10 +4,12 @@ import './index.css'
 import App from './App.tsx'
 import { ConfirmProvider } from './components/ConfirmSheet.tsx'
 import { UpdatePrompt } from './components/UpdatePrompt.tsx'
+import { MisconfigBanner } from './components/MisconfigBanner.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ConfirmProvider>
+      <MisconfigBanner />
       <UpdatePrompt />
       <App />
     </ConfirmProvider>

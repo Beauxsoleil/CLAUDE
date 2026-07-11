@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { ScheduleItem } from '../types';
-import { useConfirm } from './ConfirmSheet';
+import { useConfirm } from './confirmContext';
 import { CheckIcon, GripIcon, PencilIcon, XIcon } from './icons';
 import { placeMedal } from '../lib/placements';
 import { formatPoints } from '../lib/format';

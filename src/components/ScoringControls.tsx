@@ -1,5 +1,6 @@
 import type { ScoringMode } from '../types';
 import { ordinal } from '../lib/placements';
+import { clampInt } from '../lib/format';
 import { PlusIcon, XIcon } from './icons';
 
 export function ScoringModeToggle({
@@ -42,12 +43,12 @@ export function PlacePointsEditor({
 }) {
   function setAt(i: number, n: number) {
     const next = value.slice();
-    next[i] = Math.max(0, n);
+    next[i] = clampInt(n);
     onChange(next);
   }
   function addPlace() {
     const last = value[value.length - 1] ?? 0;
-    onChange([...value, Math.max(0, Math.round(last / 2))]);
+    onChange([...value, clampInt(last / 2)]);
   }
   function removeAt(i: number) {
     onChange(value.filter((_, idx) => idx !== i));

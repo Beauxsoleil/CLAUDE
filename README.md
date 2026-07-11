@@ -103,7 +103,11 @@ like a regular app: its own icon, full screen, no browser chrome.
 
 ## 2. Configure the app
 
-Create a `.env` file in the project root with the values from step 1.3:
+Copy the template and fill in the values from step 1.3:
+
+```bash
+cp .env.example .env
+```
 
 ```
 VITE_FIREBASE_API_KEY=...
@@ -113,6 +117,9 @@ VITE_FIREBASE_STORAGE_BUCKET=...
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 ```
+
+If these are missing, a red "Not connected to Firebase" banner appears and
+nothing you enter is saved — that's the app warning you the keys aren't set.
 
 ## 3. Run locally
 
