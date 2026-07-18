@@ -1,48 +1,68 @@
-# Camp Points — hardware scoreboard (ESP32 + ILI9341)
+# Camp Points — hardware scoreboard (ESP32 + ILI9341 + touch)
 
 A physical, always-on leaderboard for one camp. It reads the same Cloud Firestore
 database the [Camp Points web app](../../README.md) uses and shows a live, ranked
 list of every team and their total — great for propping up at the dining hall or
-the evening rally.
-
-![layout: red header with camp name + code, then ranked rows]
+the evening rally. The display is styled after the app's **Sandstone** (beige)
+theme: warm sandstone canvas, dark ink text, and a colour bar per team scaled to
+the leader, just like the app's cast-to-TV scoreboard.
 
 ## How it works
 
 The web app stores **no per-team score**. Each team's total is the sum of that
-camp's `transactions`. So this sketch:
+camp's `transactions`, with points **doubled on the camp's double-point days**.
+So this sketch:
 
-1. looks up the camp by its 5-letter code (`camps/{CAMP_ID}`),
+1. looks up the camp by its 5-letter code (`camps/{code}`) — display name +
+   `doublePointDays`,
 2. lists the camp's `teams` (name + colour),
-3. pages through the camp's `transactions`, adding each `points` value to the
-   right team, and
-4. draws the teams sorted highest-first, each in its app colour.
+3. pages through the camp's `transactions`, adding each `points` value
+   (× 2 when its `createdAt` falls on a double-point day) to the right team, and
+4. draws the teams sorted highest-first, each with a progress bar in its app
+   colour. On a 2× day a small badge appears in the header.
 
 It reads Firestore directly over its **REST API** using only your project's Web
 API key — the app's security rules allow anyone with the camp code to read a
 camp's teams and transactions, so there is no login step. (This is why the old
 `FirebaseESP32` / Realtime Database library is not used.)
 
-> **Scores are raw sums.** This build intentionally ignores the app's
-> "double point days," so on a 2× day the board will read lower than the app.
+> **Timezone matters.** Double-point days are local dates ("2026-07-18"), so
+> `TIME_ZONE` in the sketch (a POSIX TZ string, default US Central) must match
+> the timezone of the phones running the app, or 2× will flip at the wrong hour.
+
+## On-screen setup (touch)
+
+No credentials need to be compiled in. On first boot the board runs a touch
+wizard: pick a WiFi network from a scan, type the password on an on-screen
+keyboard, and enter the 5-letter camp code. Settings are stored in flash (NVS)
+and survive reboots and re-flashes. **Tap the gear** in the top-right of the
+scoreboard any time to run setup again.
+
+If you prefer, you can pre-fill `WIFI_SSID_DEFAULT` / `WIFI_PASSWORD_DEFAULT` /
+`CAMP_ID_DEFAULT` at the top of the sketch — values saved by the wizard always
+win over these. Avoid committing real WiFi passwords to git.
 
 ## Hardware / wiring
 
-ILI9341 SPI display wired to an ESP32 (unchanged from the original sketch):
+ILI9341 SPI display with an XPT2046 touch controller, wired to an ESP32:
 
-| TFT pin | ESP32 |
-|--------|-------|
-| CS     | GPIO 5 |
-| DC     | GPIO 4 |
-| RST    | GPIO 16 |
-| MOSI   | GPIO 23 (VSPI) |
-| SCK    | GPIO 18 (VSPI) |
-| MISO   | GPIO 19 |
-| LED/BL | 3V3 |
-| VCC    | 3V3 |
-| GND    | GND |
+| TFT pin  | ESP32 |
+|----------|-------|
+| CS       | GPIO 5 |
+| DC       | GPIO 4 |
+| RST      | GPIO 16 |
+| MOSI     | GPIO 23 (VSPI) |
+| SCK      | GPIO 18 (VSPI) |
+| MISO     | GPIO 19 |
+| LED/BL   | 3V3 |
+| VCC      | 3V3 |
+| GND      | GND |
+| T_CS     | GPIO 17 |
+| T_IRQ    | GPIO 27 |
+| T_DIN/T_DO/T_CLK | shared with MOSI/MISO/SCK |
 
-The touch controller (`TOUCH_CS`, GPIO 17) is not used.
+If taps land offset from where you press, tweak `TS_MINX/MAXX/MINY/MAXY` near
+the top of the sketch.
 
 ## Libraries
 
@@ -50,24 +70,21 @@ Install via **Arduino IDE → Library Manager**:
 
 - **Adafruit GFX Library**
 - **Adafruit ILI9341**
+- **XPT2046_Touchscreen**
 - **ArduinoJson** — **7.x** (the sketch uses the v7 `JsonDocument` API)
 
-`WiFi`, `WiFiClientSecure`, and `HTTPClient` come with the **esp32** board
-package (Boards Manager → "esp32" by Espressif). Select an ESP32 board before
-compiling.
-
-You can remove `FirebaseESP32` if you had it installed — it is no longer used.
+`WiFi`, `WiFiClientSecure`, `HTTPClient`, and `Preferences` come with the
+**esp32** board package (Boards Manager → "esp32" by Espressif). Select an
+ESP32 board before compiling.
 
 ## Configure
 
 Edit the block at the top of `camp-scoreboard.ino`:
 
 ```cpp
-#define WIFI_SSID            "..."
-#define WIFI_PASSWORD        "..."
 #define FIREBASE_PROJECT_ID  "..."   // = the app's VITE_FIREBASE_PROJECT_ID
 #define FIREBASE_API_KEY     "..."   // = the app's VITE_FIREBASE_API_KEY (Web API key)
-#define CAMP_ID              "ABCDE" // the code on the app's Setup tab
+#define TIME_ZONE "CST6CDT,M3.2.0,M11.1.0"  // POSIX TZ of the camp
 ```
 
 Where to find each value:
@@ -76,8 +93,8 @@ Where to find each value:
   settings* → *General* → *Your apps* → the Web app's SDK config (`projectId`
   and `apiKey`). These are the exact same values in the web app's `.env`
   (`VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_API_KEY`).
-- **`CAMP_ID`** — open the app, go to the **Setup** tab, and use the 5-letter
-  **camp code** shown there (uppercase, e.g. `P9NCF`).
+- **Camp code** — entered on-screen (or `CAMP_ID_DEFAULT`): open the app, go to
+  the **Setup** tab, and use the 5-letter code shown there (e.g. `P9NCF`).
 
 Optional tuning (also near the top): `POLL_MS` (refresh interval, default 5 s),
 `VISIBLE_ROWS` (rows shown, default 6), `MAX_TEAMS`, `TX_PAGE_SIZE`, `MAX_TX`.
@@ -87,9 +104,10 @@ Optional tuning (also near the top): `POLL_MS` (refresh interval, default 5 s),
 1. Open `camp-scoreboard.ino` in the Arduino IDE.
 2. Select your ESP32 board and port.
 3. Upload. Open Serial Monitor at **115200** to watch it connect and sync.
+4. Follow the on-screen setup wizard on the display.
 
 The screen shows the camp name + code and a WiFi indicator in the header, then a
-ranked row per team (rank, colour swatch, name, total). It refreshes every
+ranked row per team (rank, name, total, colour bar). It refreshes every
 `POLL_MS` and only redraws when something changed, so it stays flicker-free.
 
 ## Security note
