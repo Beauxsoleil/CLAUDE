@@ -4,9 +4,11 @@
 //  Reads ONE camp from the Camp Points web app's Cloud Firestore database and
 //  shows a live, ranked leaderboard of every team, styled to match the app's
 //  "Sandstone" (beige) theme. The app stores no per-team "score" — each team's
-//  total is the sum of that camp's `transactions` (× 2 on the camp's
-//  double-point days) — so this sketch reads the camp doc, teams, and
-//  transactions and adds them up the same way the app does (see scoring.ts).
+//  total is the sum of that camp's `transactions` — so this sketch reads the
+//  camp's teams and transactions and adds them up itself.
+//
+//  Double-point days are intentionally NOT applied here: scores are the raw
+//  sum of `points`, so on a 2× day this board will read lower than the app.
 //
 //  It talks to Firestore over its plain HTTPS REST API using only the project's
 //  Web API key: the app's security rules allow anyone with the camp code to read
@@ -36,7 +38,6 @@
 #include <Adafruit_ILI9341.h>
 #include <XPT2046_Touchscreen.h>
 #include <ArduinoJson.h>
-#include <time.h>
 
 // ── User configuration ────────────────────────────────────────────────────────
 
@@ -51,18 +52,12 @@
 #define WIFI_PASSWORD_DEFAULT ""
 #define CAMP_ID_DEFAULT       ""   // 5-letter camp code, e.g. "P9NCF"
 
-// POSIX timezone of the people running the camp. Double-point days are stored
-// as local dates ("2026-07-18"), so this must match the phones running the app
-// or 2× multipliers will flip at the wrong hour. Default: US Central.
-#define TIME_ZONE "CST6CDT,M3.2.0,M11.1.0"
-
 // Behaviour
 static const uint32_t POLL_MS      = 5000;   // refresh every 5 s
 static const int      MAX_TEAMS    = 32;     // teams tracked
 static const int      VISIBLE_ROWS = 6;      // rows that fit on the screen
 static const int      TX_PAGE_SIZE = 250;    // transactions fetched per request
 static const long     MAX_TX       = 8000;   // safety cap across all pages
-static const int      MAX_2X_DAYS  = 16;     // double-point days tracked
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Pin definitions (from wiring)
@@ -95,7 +90,6 @@ static const int      MAX_2X_DAYS  = 16;     // double-point days tracked
 #define C_ON_ACCENT   0x2944   // --color-on-accent   #2c2822
 #define C_POSITIVE    0x5BC9   // --color-positive    #5f7a4e
 #define C_DANGER      0xB2A7   // --color-danger      #b0553f
-#define C_SPECIAL     0x9B4F   // --color-special     #9a6b7c
 
 // ── Layout constants (screen 320 × 240 landscape) ─────────────────────────────
 #define SCR_W     320
@@ -119,15 +113,12 @@ struct Team {
   String   id;
   String   name;
   uint16_t color;   // RGB565, from the team's app colour
-  long     score;   // sum of transaction points × day multiplier
+  long     score;   // sum of transaction points
 };
 
 Team   teams[MAX_TEAMS];
 int    teamCount = 0;
 String campName  = "";
-
-String doubleDays[MAX_2X_DAYS];   // local-date keys, "YYYY-MM-DD"
-int    doubleDayCount = 0;
 
 unsigned long lastFetch = 0;
 bool          firstDraw = true;
@@ -143,7 +134,7 @@ String   promptText(const char *title, const char *fieldLabel, const String &ini
                     bool isPassword, int maxLen);
 void     connectWiFi();
 bool     fetchAll();
-bool     fetchCampMeta();
+bool     fetchCampName();
 bool     fetchTeams();
 bool     fetchTransactions();
 int      findTeam(const String &id);
@@ -207,43 +198,6 @@ long readPoints(JsonVariantConst pointsField) {
   return 0;
 }
 
-// Read a millisecond epoch (`createdAt`). Needs 64 bits — ESP32 long is 32-bit.
-int64_t readMillis(JsonVariantConst f) {
-  if (f["integerValue"].is<const char *>())
-    return strtoll(f["integerValue"].as<const char *>(), nullptr, 10);
-  if (f["doubleValue"].is<double>())
-    return (int64_t)f["doubleValue"].as<double>();
-  return 0;
-}
-
-// Local-timezone day key for an epoch-ms timestamp, e.g. "2026-07-18".
-// Mirrors the web app's dayKey() so double-point days line up.
-String dayKeyLocal(int64_t ms) {
-  time_t t = (time_t)(ms / 1000);
-  struct tm tmv;
-  localtime_r(&t, &tmv);
-  char buf[11];
-  snprintf(buf, sizeof(buf), "%04d-%02d-%02d",
-           tmv.tm_year + 1900, tmv.tm_mon + 1, tmv.tm_mday);
-  return String(buf);
-}
-
-// 2 if the transaction happened on a double-point day, else 1 (see scoring.ts).
-int txMultiplier(int64_t createdAtMs) {
-  if (doubleDayCount == 0 || createdAtMs <= 0) return 1;
-  String key = dayKeyLocal(createdAtMs);
-  for (int i = 0; i < doubleDayCount; i++)
-    if (doubleDays[i] == key) return 2;
-  return 1;
-}
-
-// True once the clock is NTP-synced and today is a double-point day.
-bool todayIsDouble() {
-  time_t now = time(nullptr);
-  if (now < 1600000000) return false;   // clock not set yet
-  return txMultiplier((int64_t)now * 1000) == 2;
-}
-
 // ── HTTP + parsing ────────────────────────────────────────────────────────────
 
 // GET `url`, stream-parse the body into `out` keeping only the fields in
@@ -267,26 +221,15 @@ bool getFiltered(const String &url, JsonDocument &out, JsonDocument &filter) {
   return true;
 }
 
-// Camp doc: display name + the list of double-point days.
-bool fetchCampMeta() {
+bool fetchCampName() {
   String url = firestoreBase() + "/camps/" + cfgCampID +
-               "?mask.fieldPaths=name&mask.fieldPaths=doublePointDays&key=" + FIREBASE_API_KEY;
+               "?mask.fieldPaths=name&key=" + FIREBASE_API_KEY;
   JsonDocument filter;
   filter["fields"]["name"]["stringValue"] = true;
-  filter["fields"]["doublePointDays"]["arrayValue"]["values"][0]["stringValue"] = true;
   JsonDocument doc;
   if (!getFiltered(url, doc, filter)) return false;
-
   const char *n = doc["fields"]["name"]["stringValue"];
   if (n && *n) campName = n;
-
-  doubleDayCount = 0;
-  for (JsonVariantConst v :
-       doc["fields"]["doublePointDays"]["arrayValue"]["values"].as<JsonArrayConst>()) {
-    if (doubleDayCount >= MAX_2X_DAYS) break;
-    const char *d = v["stringValue"];
-    if (d && *d) doubleDays[doubleDayCount++] = d;
-  }
   return true;
 }
 
@@ -327,8 +270,6 @@ bool fetchTransactions() {
   filter["documents"][0]["fields"]["teamId"]["stringValue"] = true;
   filter["documents"][0]["fields"]["points"]["integerValue"] = true;
   filter["documents"][0]["fields"]["points"]["doubleValue"] = true;
-  filter["documents"][0]["fields"]["createdAt"]["integerValue"] = true;
-  filter["documents"][0]["fields"]["createdAt"]["doubleValue"] = true;
   filter["nextPageToken"] = true;
 
   String pageToken = "";
@@ -336,8 +277,7 @@ bool fetchTransactions() {
   do {
     String url = firestoreBase() + "/camps/" + cfgCampID +
                  "/transactions?pageSize=" + TX_PAGE_SIZE +
-                 "&mask.fieldPaths=teamId&mask.fieldPaths=points&mask.fieldPaths=createdAt&key=" +
-                 FIREBASE_API_KEY;
+                 "&mask.fieldPaths=teamId&mask.fieldPaths=points&key=" + FIREBASE_API_KEY;
     if (pageToken.length()) url += "&pageToken=" + urlEncode(pageToken);
 
     JsonDocument doc;
@@ -347,10 +287,7 @@ bool fetchTransactions() {
       const char *teamId = d["fields"]["teamId"]["stringValue"];
       if (!teamId) continue;
       int idx = findTeam(teamId);
-      if (idx >= 0) {
-        long points = readPoints(d["fields"]["points"]);
-        teams[idx].score += points * txMultiplier(readMillis(d["fields"]["createdAt"]));
-      }
+      if (idx >= 0) teams[idx].score += readPoints(d["fields"]["points"]);
       seen++;
     }
     pageToken = doc["nextPageToken"] | "";
@@ -361,7 +298,7 @@ bool fetchTransactions() {
 
 bool fetchAll() {
   if (!WiFi.isConnected()) return false;
-  fetchCampMeta();                 // non-fatal; name/2× days can lag a cycle
+  fetchCampName();                 // non-fatal; header falls back to camp code
   if (!fetchTeams()) return false; // teams are the source of leaderboard rows
   if (!fetchTransactions()) return false;
   sortTeams();
@@ -386,7 +323,6 @@ void sortTeams() {  // selection sort, N is small
 
 String buildSignature() {
   String s = WiFi.isConnected() ? "on|" : "off|";
-  s += todayIsDouble() ? "2x|" : "1x|";
   s += campName + "|";
   for (int i = 0; i < teamCount; i++) { s += teams[i].id; s += ':'; s += teams[i].score; s += ';'; }
   return s;
@@ -736,14 +672,6 @@ void drawHeader() {
   if (title.length() > 12) title = title.substring(0, 12);
   tft.print(title);
 
-  if (todayIsDouble()) {
-    tft.fillRoundRect(160, 17, 26, 15, 4, C_SPECIAL);
-    tft.setTextSize(1);
-    tft.setTextColor(C_SURFACE);
-    tft.setCursor(167, 21);
-    tft.print("2x");
-  }
-
   tft.setTextSize(1);
   tft.setTextColor(C_INK_MUTED);
   tft.setCursor(SCR_W - 96, 8);
@@ -856,11 +784,6 @@ void setup() {
   ts.begin();
   ts.setRotation(3);
 
-  // TZ must be set before any localtime_r so double-point-day keys are right
-  // even before NTP syncs — transaction timestamps are absolute epochs.
-  setenv("TZ", TIME_ZONE, 1);
-  tzset();
-
   loadSettings();
 
   if (!settingsComplete()) {
@@ -875,8 +798,6 @@ void setup() {
   // Firestore's cert is not validated (the data is public, read-only). To
   // harden, replace with secureClient.setCACert(...) using the GTS root R1/R4.
   secureClient.setInsecure();
-
-  configTzTime(TIME_ZONE, "pool.ntp.org");   // clock for the "2x today" badge
 
   splash("Loading camp...");
   fetchAll();

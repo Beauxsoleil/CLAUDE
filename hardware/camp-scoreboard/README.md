@@ -10,25 +10,22 @@ the leader, just like the app's cast-to-TV scoreboard.
 ## How it works
 
 The web app stores **no per-team score**. Each team's total is the sum of that
-camp's `transactions`, with points **doubled on the camp's double-point days**.
-So this sketch:
+camp's `transactions`. So this sketch:
 
-1. looks up the camp by its 5-letter code (`camps/{code}`) — display name +
-   `doublePointDays`,
+1. looks up the camp by its 5-letter code (`camps/{code}`) for its display name,
 2. lists the camp's `teams` (name + colour),
-3. pages through the camp's `transactions`, adding each `points` value
-   (× 2 when its `createdAt` falls on a double-point day) to the right team, and
+3. pages through the camp's `transactions`, adding each `points` value to the
+   right team, and
 4. draws the teams sorted highest-first, each with a progress bar in its app
-   colour. On a 2× day a small badge appears in the header.
+   colour.
 
 It reads Firestore directly over its **REST API** using only your project's Web
 API key — the app's security rules allow anyone with the camp code to read a
 camp's teams and transactions, so there is no login step. (This is why the old
 `FirebaseESP32` / Realtime Database library is not used.)
 
-> **Timezone matters.** Double-point days are local dates ("2026-07-18"), so
-> `TIME_ZONE` in the sketch (a POSIX TZ string, default US Central) must match
-> the timezone of the phones running the app, or 2× will flip at the wrong hour.
+> **Scores are raw sums.** This build intentionally ignores the app's
+> "double point days," so on a 2× day the board will read lower than the app.
 
 ## On-screen setup (touch)
 
@@ -84,7 +81,6 @@ Edit the block at the top of `camp-scoreboard.ino`:
 ```cpp
 #define FIREBASE_PROJECT_ID  "..."   // = the app's VITE_FIREBASE_PROJECT_ID
 #define FIREBASE_API_KEY     "..."   // = the app's VITE_FIREBASE_API_KEY (Web API key)
-#define TIME_ZONE "CST6CDT,M3.2.0,M11.1.0"  // POSIX TZ of the camp
 ```
 
 Where to find each value:
