@@ -3,6 +3,7 @@ import { useCampSession } from './hooks/useCampSession';
 import { useCampData } from './hooks/useCampData';
 import { useTheme, type ThemeId } from './hooks/useTheme';
 import { useLock } from './hooks/useLock';
+import { useScorekeeperName } from './hooks/useScorekeeperName';
 import { UnlockSheet } from './components/UnlockSheet';
 import { ScoreboardView } from './components/ScoreboardView';
 import { CampGate } from './components/CampGate';
@@ -97,6 +98,7 @@ function CampApp({
   const data = useCampData(campId);
   const online = useOnline();
   const { canEdit, hasPin, lock, unlock } = useLock(campId, data.campPin);
+  const { name: scorekeeperName, setName: setScorekeeperName } = useScorekeeperName(campId);
   const [codeCopied, setCodeCopied] = useState(false);
   const [showUnlock, setShowUnlock] = useState(false);
   const [presenting, setPresenting] = useState(false);
@@ -165,6 +167,8 @@ function CampApp({
             isTodayDouble={data.isTodayDouble}
             eventPlacements={data.eventPlacements}
             canEdit={canEdit}
+            scorekeeperName={scorekeeperName}
+            onSetScorekeeperName={setScorekeeperName}
             onNavigate={setTab}
             onPresent={() => setPresenting(true)}
           />
@@ -190,6 +194,8 @@ function CampApp({
             setTheme={setTheme}
             canEdit={canEdit}
             campPin={data.campPin}
+            scorekeeperName={scorekeeperName}
+            onSetScorekeeperName={setScorekeeperName}
             onLock={lock}
             onRequestUnlock={requestUnlock}
             onLeave={onLeave}

@@ -261,10 +261,12 @@ export function awardPoints(
     reason: string;
     type: 'event' | 'manual';
     scheduleItemId: string | null;
+    awardedBy?: string;
   },
 ): string {
   const ref = doc(transactionsCol(campId));
-  fireWrite(setDoc(ref, { ...input, createdAt: Date.now() }));
+  const { awardedBy, ...rest } = input;
+  fireWrite(setDoc(ref, { ...rest, ...(awardedBy ? { awardedBy } : {}), createdAt: Date.now() }));
   return ref.id;
 }
 

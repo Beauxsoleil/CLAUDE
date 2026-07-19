@@ -148,6 +148,7 @@ export function LogTab({
             <p className="truncate text-sm text-ink-muted">{tx.reason}</p>
             <p className="text-xs text-ink-faint">
               {formatWhen(tx.createdAt)} · {tx.type === 'event' ? 'Event' : 'Manual'}
+              {tx.awardedBy ? ` · ${tx.awardedBy}` : ''}
             </p>
           </div>
           {mult === 2 && (

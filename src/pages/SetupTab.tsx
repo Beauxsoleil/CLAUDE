@@ -30,6 +30,8 @@ export function SetupTab({
   setTheme,
   canEdit,
   campPin,
+  scorekeeperName,
+  onSetScorekeeperName,
   onLock,
   onRequestUnlock,
   onLeave,
@@ -43,6 +45,8 @@ export function SetupTab({
   setTheme: (t: ThemeId) => void;
   canEdit: boolean;
   campPin: string | undefined;
+  scorekeeperName: string;
+  onSetScorekeeperName: (name: string) => void;
   onLock: () => void;
   onRequestUnlock: () => void;
   onLeave: () => void;
@@ -61,6 +65,12 @@ export function SetupTab({
   const [editingName, setEditingName] = useState('');
   const [showQr, setShowQr] = useState(false);
   const [pinInput, setPinInput] = useState('');
+  const [nameInput, setNameInput] = useState(scorekeeperName);
+
+  function saveScorekeeperName(e: React.FormEvent) {
+    e.preventDefault();
+    onSetScorekeeperName(nameInput);
+  }
 
   function savePin(e: React.FormEvent) {
     e.preventDefault();
@@ -512,6 +522,31 @@ export function SetupTab({
           ))}
           {presets.length === 0 && <p className="text-sm text-ink-faint">No presets yet.</p>}
         </div>
+      </section>
+
+      {/* Scorekeeper name */}
+      <section>
+        <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-ink-faint">Scorekeeper name</h2>
+        <p className="mb-2.5 text-sm text-ink-faint">
+          Attached to points you award or deduct on this device, so the History log shows who did what.
+        </p>
+        <form onSubmit={saveScorekeeperName} className="flex gap-2 rounded-2xl bg-surface p-3 ring-1 ring-line">
+          <input
+            type="text"
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            placeholder="Your name"
+            maxLength={40}
+            className="min-w-0 flex-1 rounded-xl border border-line bg-surface2 px-4 py-3 text-ink outline-none focus:border-accent"
+          />
+          <button
+            type="submit"
+            disabled={nameInput.trim() === scorekeeperName}
+            className="shrink-0 rounded-xl bg-accent px-4 py-3 font-bold text-on-accent transition active:scale-95 disabled:opacity-40"
+          >
+            Save
+          </button>
+        </form>
       </section>
 
       {/* Scoring lock */}

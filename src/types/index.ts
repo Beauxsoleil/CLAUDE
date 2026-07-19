@@ -60,4 +60,6 @@ export interface Transaction {
   type: TransactionType;
   scheduleItemId: string | null;
   createdAt: number;
+  /** Scorekeeper's device-local display name, if one was set when this was awarded. */
+  awardedBy?: string;
 }
