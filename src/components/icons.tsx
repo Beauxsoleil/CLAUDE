@@ -196,6 +196,25 @@ export function LockIcon({ className }: IconProps) {
   );
 }
 
+export function TvIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="2" y="7" width="20" height="13" rx="2" />
+      <path d="m7 7 5-4 5 4" />
+    </Svg>
+  );
+}
+
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M12 3v12" />
+      <path d="m7 12 5 5 5-5" />
+      <path d="M5 21h14" />
+    </Svg>
+  );
+}
+
 export function TentIcon({ className }: IconProps) {
   return (
     <Svg className={className}>

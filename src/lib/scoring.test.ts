@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computePlacements, computeTotals, makeMultiplier } from './scoring';
+import { computePlacements, computeTotals, makeMultiplier, summarizeByScorekeeper } from './scoring';
 import type { Team, Transaction } from '../types';
 
 function team(id: string): Team {
@@ -18,6 +18,7 @@ function tx(teamId: string, points: number, opts: Partial<Transaction> = {}): Tr
     type: opts.type ?? 'manual',
     scheduleItemId: opts.scheduleItemId ?? null,
     createdAt: opts.createdAt ?? seq,
+    awardedBy: opts.awardedBy,
   };
 }
 
@@ -84,5 +85,28 @@ describe('computePlacements', () => {
       { teamId: 'a', place: 1 },
       { teamId: 'c', place: 2 },
     ]);
+  });
+});
+
+describe('summarizeByScorekeeper', () => {
+  it('groups by awardedBy, sums with the multiplier, sorts by total', () => {
+    const txs = [
+      tx('a', 10, { awardedBy: 'Sam' }),
+      tx('b', 5, { awardedBy: 'Ali' }),
+      tx('a', 3, { awardedBy: 'Sam' }),
+    ];
+    expect(summarizeByScorekeeper(txs, () => 1)).toEqual([
+      { name: 'Sam', count: 2, total: 13 },
+      { name: 'Ali', count: 1, total: 5 },
+    ]);
+  });
+  it('buckets missing/blank names under Unattributed', () => {
+    const txs = [tx('a', 10), tx('b', 4, { awardedBy: '  ' })];
+    const out = summarizeByScorekeeper(txs, () => 1);
+    expect(out).toEqual([{ name: 'Unattributed', count: 2, total: 14 }]);
+  });
+  it('applies the per-day multiplier', () => {
+    const out = summarizeByScorekeeper([tx('a', 10, { awardedBy: 'Sam' })], () => 2);
+    expect(out[0].total).toBe(20);
   });
 });

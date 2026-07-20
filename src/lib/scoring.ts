@@ -31,6 +31,35 @@ export function computeTotals(
     .sort((a, b) => b.total - a.total);
 }
 
+export interface ScorekeeperActivity {
+  name: string;
+  count: number;
+  total: number;
+}
+
+/**
+ * Points activity grouped by the scorekeeper who awarded each entry, highest
+ * total first. Entries with no `awardedBy` are grouped under "Unattributed".
+ * `total` applies the per-day multiplier so it matches the standings.
+ */
+export function summarizeByScorekeeper(
+  transactions: Transaction[],
+  multiplierFor: (ts: number) => number,
+): ScorekeeperActivity[] {
+  const byName = new Map<string, ScorekeeperActivity>();
+  for (const tx of transactions) {
+    const name = tx.awardedBy?.trim() || 'Unattributed';
+    let entry = byName.get(name);
+    if (!entry) {
+      entry = { name, count: 0, total: 0 };
+      byName.set(name, entry);
+    }
+    entry.count += 1;
+    entry.total += tx.points * multiplierFor(tx.createdAt);
+  }
+  return [...byName.values()].sort((a, b) => b.total - a.total);
+}
+
 /**
  * Finishing order per event, derived from award order (first team awarded for
  * an event finished 1st, and so on). Undo-safe: deleting an award shifts the

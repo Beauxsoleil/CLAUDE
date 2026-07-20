@@ -169,6 +169,7 @@ function CampApp({
             canEdit={canEdit}
             scorekeeperName={scorekeeperName}
             onSetScorekeeperName={setScorekeeperName}
+            boardCampId={data.boardCampId}
             onNavigate={setTab}
             onPresent={() => setPresenting(true)}
           />
@@ -196,18 +197,23 @@ function CampApp({
             campPin={data.campPin}
             scorekeeperName={scorekeeperName}
             onSetScorekeeperName={setScorekeeperName}
+            boardCampId={data.boardCampId}
+            boardPublishedAt={data.boardPublishedAt}
+            onLeave={onLeave}
             onLock={lock}
             onRequestUnlock={requestUnlock}
-            onLeave={onLeave}
           />
         )}
         {tab === 'log' && (
           <LogTab
             campId={campId}
+            campName={campName}
             teams={data.teams}
             transactions={data.transactions}
             multiplierFor={data.multiplierFor}
             canEdit={canEdit}
+            scorekeeperName={scorekeeperName}
+            onSetScorekeeperName={setScorekeeperName}
           />
         )}
       </main>

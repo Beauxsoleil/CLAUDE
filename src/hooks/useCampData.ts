@@ -19,6 +19,8 @@ export function useCampData(campId: string | null) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [doubleDays, setDoubleDays] = useState<Set<string>>(new Set());
   const [campPin, setCampPin] = useState<string | undefined>(undefined);
+  const [boardCampId, setBoardCampId] = useState<string | undefined>(undefined);
+  const [boardPublishedAt, setBoardPublishedAt] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     if (!campId) {
@@ -28,11 +30,15 @@ export function useCampData(campId: string | null) {
       setTransactions([]);
       setDoubleDays(new Set());
       setCampPin(undefined);
+      setBoardCampId(undefined);
+      setBoardPublishedAt(undefined);
       return;
     }
     const unsubCamp = subscribeCamp(campId, (camp) => {
       setDoubleDays(new Set(camp?.doublePointDays ?? []));
       setCampPin(camp?.pin);
+      setBoardCampId(camp?.boardCampId);
+      setBoardPublishedAt(camp?.boardPublishedAt);
     });
     const unsubTeams = subscribeTeams(campId, setTeams);
     const unsubPresets = subscribePresets(campId, setPresets);
@@ -53,12 +59,19 @@ export function useCampData(campId: string | null) {
 
   const isTodayDouble = doubleDays.has(todayKey());
 
-  const teamsWithTotals = useMemo(
-    () => computeTotals(teams, transactions, multiplierFor),
-    [teams, transactions, multiplierFor],
+  // Reversed entries stay in the log (for the audit trail) but must not count
+  // toward standings, placements, or trends.
+  const activeTransactions = useMemo(
+    () => transactions.filter((t) => !t.reversedAt),
+    [transactions],
   );
 
-  const eventPlacements = useMemo(() => computePlacements(transactions), [transactions]);
+  const teamsWithTotals = useMemo(
+    () => computeTotals(teams, activeTransactions, multiplierFor),
+    [teams, activeTransactions, multiplierFor],
+  );
+
+  const eventPlacements = useMemo(() => computePlacements(activeTransactions), [activeTransactions]);
 
   const activeScheduleItem = useMemo(
     () => schedule.find((s) => s.status === 'active') ?? null,
@@ -76,8 +89,11 @@ export function useCampData(campId: string | null) {
     presets,
     schedule,
     transactions,
+    activeTransactions,
     doubleDays,
     campPin,
+    boardCampId,
+    boardPublishedAt,
     isTodayDouble,
     multiplierFor,
     eventPlacements,

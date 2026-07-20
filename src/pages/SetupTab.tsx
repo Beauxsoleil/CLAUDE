@@ -4,7 +4,7 @@ import type { TeamWithTotal } from '../hooks/useCampData';
 import { TEAM_COLORS, contrastText } from '../lib/colors';
 import { useConfirm } from '../components/confirmContext';
 import { PlacePointsEditor, ScoringModeToggle } from '../components/ScoringControls';
-import { CheckIcon, LockIcon, QrIcon, XIcon, ZapIcon } from '../components/icons';
+import { CheckIcon, LockIcon, QrIcon, TvIcon, XIcon, ZapIcon } from '../components/icons';
 import { QrModal } from '../components/QrModal';
 import { formatDayKey, todayKey } from '../lib/dates';
 import { placeMedal } from '../lib/placements';
@@ -15,8 +15,11 @@ import {
   addTeam,
   deletePreset,
   deleteTeam,
+  linkBoardCamp,
+  publishBoardSnapshot,
   setCampPin,
   setDoublePointDay,
+  unlinkBoardCamp,
   updateTeam,
 } from '../lib/campRepo';
 
@@ -32,6 +35,8 @@ export function SetupTab({
   campPin,
   scorekeeperName,
   onSetScorekeeperName,
+  boardCampId,
+  boardPublishedAt,
   onLock,
   onRequestUnlock,
   onLeave,
@@ -47,6 +52,8 @@ export function SetupTab({
   campPin: string | undefined;
   scorekeeperName: string;
   onSetScorekeeperName: (name: string) => void;
+  boardCampId: string | undefined;
+  boardPublishedAt: number | undefined;
   onLock: () => void;
   onRequestUnlock: () => void;
   onLeave: () => void;
@@ -66,6 +73,8 @@ export function SetupTab({
   const [showQr, setShowQr] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [nameInput, setNameInput] = useState(scorekeeperName);
+  const [boardBusy, setBoardBusy] = useState(false);
+  const [boardCopied, setBoardCopied] = useState(false);
 
   function saveScorekeeperName(e: React.FormEvent) {
     e.preventDefault();
@@ -180,6 +189,47 @@ export function SetupTab({
     } catch {
       // clipboard API unavailable; ignore
     }
+  }
+
+  async function setUpBoard() {
+    setBoardBusy(true);
+    try {
+      await linkBoardCamp(campId, campName);
+    } finally {
+      setBoardBusy(false);
+    }
+  }
+
+  async function updateBoard() {
+    if (!boardCampId) return;
+    setBoardBusy(true);
+    try {
+      await publishBoardSnapshot(campId, boardCampId, teams);
+    } finally {
+      setBoardBusy(false);
+    }
+  }
+
+  async function copyBoardCode() {
+    if (!boardCampId) return;
+    try {
+      await navigator.clipboard.writeText(boardCampId);
+      setBoardCopied(true);
+      setTimeout(() => setBoardCopied(false), 1500);
+    } catch {
+      // clipboard API unavailable; ignore
+    }
+  }
+
+  async function removeBoard() {
+    const ok = await confirm({
+      title: 'Remove board display?',
+      message:
+        'The hardware board will stop updating. You can set it up again later, which creates a fresh board code.',
+      confirmLabel: 'Remove board',
+      danger: true,
+    });
+    if (ok) unlinkBoardCamp(campId);
   }
 
   async function handleLeave() {
@@ -593,6 +643,68 @@ export function SetupTab({
             Switch this device to viewer mode
           </button>
         </div>
+      </section>
+
+      {/* Hardware board */}
+      <section>
+        <h2 className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-faint">
+          <TvIcon className="h-3.5 w-3.5" />
+          Hardware board
+        </h2>
+        {!boardCampId ? (
+          <>
+            <p className="mb-2.5 text-sm text-ink-faint">
+              Drive a physical scoreboard that only reveals new standings when you press "Update board" —
+              great for rally reveals. Sets up a separate board code the display reads from.
+            </p>
+            <button
+              onClick={setUpBoard}
+              disabled={boardBusy}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 font-bold text-on-accent transition active:scale-[0.98] disabled:opacity-40"
+            >
+              <TvIcon className="h-4 w-4" />
+              {boardBusy ? 'Setting up…' : 'Set up board display'}
+            </button>
+          </>
+        ) : (
+          <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4 ring-1 ring-line">
+            <p className="text-sm text-ink-faint">
+              Enter this code in the board's on-screen setup (the gear icon) so it reads from this display.
+            </p>
+            <button
+              onClick={copyBoardCode}
+              className="mx-auto rounded-2xl border border-accent/40 bg-accent/10 px-6 py-3 text-3xl font-black tracking-[0.3em] text-accent-text transition active:scale-[0.97]"
+            >
+              {boardCampId}
+            </button>
+            <p className="h-4 text-center text-xs text-accent-text">
+              {boardCopied ? 'Copied to clipboard!' : 'Tap to copy'}
+            </p>
+            <button
+              onClick={updateBoard}
+              disabled={boardBusy}
+              className="flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 font-bold text-on-accent transition active:scale-[0.98] disabled:opacity-40"
+            >
+              <TvIcon className="h-4 w-4" />
+              {boardBusy ? 'Updating…' : 'Update board now'}
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="flex-1 text-sm text-ink-faint">
+                {boardPublishedAt
+                  ? `Last updated ${new Date(boardPublishedAt).toLocaleString([], {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}`
+                  : 'Not published yet — press "Update board now".'}
+              </span>
+              <button onClick={removeBoard} className="text-sm font-semibold text-danger active:opacity-70">
+                Remove board
+              </button>
+            </div>
+          </div>
+        )}
       </section>
       </>
       )}
