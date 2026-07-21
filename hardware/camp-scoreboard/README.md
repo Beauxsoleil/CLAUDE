@@ -27,6 +27,26 @@ camp's teams and transactions, so there is no login step. (This is why the old
 > **Scores are raw sums.** This build intentionally ignores the app's
 > "double point days," so on a 2× day the board will read lower than the app.
 
+## Press-to-reveal (optional, no firmware change)
+
+By default the board tracks scores live — it re-polls every few seconds and
+updates as points are awarded. If you'd rather it **hold, then reveal** new
+standings on cue (for a rally reveal), use the app's **display-camp** feature
+instead of reflashing anything:
+
+1. In the web app, open **Setup → Hardware board → Set up board display**. This
+   creates a second "display" camp and shows its code.
+2. Point the board at that **display-camp code** (in the board's on-screen setup
+   via the gear icon) — not your real camp code.
+3. Keep scoring as normal on your phones. The board stays frozen because the
+   display camp's data doesn't change on its own.
+4. When you want the board to catch up, press **Update board** (on the app's
+   Live tab or in Setup). The app writes a fresh snapshot of current standings
+   into the display camp, and the board jumps to it on its next poll.
+
+The firmware is unchanged — the board is still just summing one camp's
+transactions; the app simply controls what's in the display camp.
+
 ## On-screen setup (touch)
 
 No credentials need to be compiled in. On first boot the board runs a touch

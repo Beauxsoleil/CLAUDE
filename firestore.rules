@@ -18,10 +18,10 @@ service cloud.firestore {
                     && request.resource.data.name is string
                     && request.resource.data.name.size() > 0
                     && request.resource.data.name.size() < 200;
-      // Only the double-point-day list and the scorekeeper pin may change
-      // after creation.
+      // Only the double-point-day list, the scorekeeper pin, and the hardware
+      // board link/publish timestamp may change after creation.
       allow update: if request.resource.data.diff(resource.data).affectedKeys()
-                      .hasOnly(['doublePointDays', 'pin']);
+                      .hasOnly(['doublePointDays', 'pin', 'boardCampId', 'boardPublishedAt']);
       allow delete: if false;
 
       match /teams/{teamId} {
@@ -35,7 +35,10 @@ service cloud.firestore {
       }
       match /transactions/{txId} {
         allow read, create, delete: if true;
-        allow update: if false;
+        // Updates are only allowed to mark an entry reversed (soft delete for
+        // the History-tab audit trail) — no other fields may change.
+        allow update: if request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['reversedAt', 'reversedBy']);
       }
     }
   }

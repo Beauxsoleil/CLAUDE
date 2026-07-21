@@ -6,6 +6,7 @@ import {
   deleteField,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -15,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { generateCampCode, normalizeCampCode } from './campCode';
+import type { TeamWithTotal } from './scoring';
 import type {
   Camp,
   EventPreset,
@@ -75,6 +77,8 @@ export async function campExists(rawCode: string): Promise<Camp | null> {
     createdAt: data.createdAt,
     doublePointDays: data.doublePointDays ?? [],
     pin: data.pin ?? undefined,
+    boardCampId: data.boardCampId ?? undefined,
+    boardPublishedAt: data.boardPublishedAt ?? undefined,
   };
 }
 
@@ -91,6 +95,8 @@ export function subscribeCamp(campId: string, cb: (camp: Camp | null) => void) {
       createdAt: data.createdAt,
       doublePointDays: data.doublePointDays ?? [],
       pin: data.pin ?? undefined,
+      boardCampId: data.boardCampId ?? undefined,
+      boardPublishedAt: data.boardPublishedAt ?? undefined,
     });
   });
 }
@@ -105,6 +111,75 @@ export function setDoublePointDay(campId: string, day: string, enabled: boolean)
 
 export function setCampPin(campId: string, pin: string | null) {
   fireWrite(updateDoc(campDoc(campId), { pin: pin ?? deleteField() }));
+}
+
+// --- Hardware board (display camp) ---
+//
+// The ESP32 board sums a camp's transactions live, so it can't be "frozen"
+// while pointed at the real camp. Instead we point it at a separate "display
+// camp" whose teams + transactions are overwritten with a standings snapshot
+// only when someone presses "Update board" — so the board holds until then.
+
+/** Create a display camp and link it to this camp. Returns the display code. */
+export async function linkBoardCamp(campId: string, name: string): Promise<string> {
+  const boardCampId = await createCamp(`${name} (Board)`);
+  await updateDoc(campDoc(campId), { boardCampId });
+  return boardCampId;
+}
+
+/** Forget the display camp. The orphan camp doc itself can't be deleted
+ *  (rules block camp deletes), but the board simply stops being updated. */
+export function unlinkBoardCamp(campId: string) {
+  fireWrite(updateDoc(campDoc(campId), { boardCampId: deleteField(), boardPublishedAt: deleteField() }));
+}
+
+/** Overwrite the display camp so its teams + one-transaction-per-team snapshot
+ *  reproduce the given standings exactly. Team docs are upserted by team id;
+ *  the snapshot transactions are wiped and re-created fresh each publish
+ *  (transaction *updates* are reserved for reversals by the rules, so a
+ *  publish must never rewrite an existing transaction in place). */
+export async function publishBoardSnapshot(
+  campId: string,
+  boardCampId: string,
+  teams: TeamWithTotal[],
+) {
+  const now = Date.now();
+  const currentIds = new Set(teams.map((t) => t.id));
+
+  const [existingTeams, existingTx] = await Promise.all([
+    getDocs(teamsCol(boardCampId)),
+    getDocs(transactionsCol(boardCampId)),
+  ]);
+  const batch = writeBatch(db);
+
+  // Clear the previous snapshot transactions, then write one per current team.
+  for (const d of existingTx.docs) {
+    batch.delete(doc(transactionsCol(boardCampId), d.id));
+  }
+  for (const t of teams) {
+    batch.set(doc(teamsCol(boardCampId), t.id), {
+      name: t.name,
+      color: t.color,
+      createdAt: t.createdAt,
+    });
+    batch.set(doc(transactionsCol(boardCampId)), {
+      teamId: t.id,
+      teamName: t.name,
+      points: t.total,
+      reason: 'Published standings',
+      type: 'manual',
+      scheduleItemId: null,
+      createdAt: now,
+    });
+  }
+
+  // Drop teams that no longer exist in the real camp.
+  for (const d of existingTeams.docs) {
+    if (!currentIds.has(d.id)) batch.delete(doc(teamsCol(boardCampId), d.id));
+  }
+
+  await batch.commit();
+  await updateDoc(campDoc(campId), { boardPublishedAt: now });
 }
 
 // --- Teams ---
@@ -261,13 +336,26 @@ export function awardPoints(
     reason: string;
     type: 'event' | 'manual';
     scheduleItemId: string | null;
+    awardedBy?: string;
   },
 ): string {
   const ref = doc(transactionsCol(campId));
-  fireWrite(setDoc(ref, { ...input, createdAt: Date.now() }));
+  const { awardedBy, ...rest } = input;
+  fireWrite(setDoc(ref, { ...rest, ...(awardedBy ? { awardedBy } : {}), createdAt: Date.now() }));
   return ref.id;
 }
 
 export function deleteTransaction(campId: string, txId: string) {
   fireWrite(deleteDoc(doc(db, 'camps', campId, 'transactions', txId)));
+}
+
+/** Soft-delete: mark an entry reversed so it stays in the log as an audit
+ *  record (who reversed it, when) but no longer counts toward totals. */
+export function reverseTransaction(campId: string, txId: string, reversedBy: string) {
+  fireWrite(
+    updateDoc(doc(db, 'camps', campId, 'transactions', txId), {
+      reversedAt: Date.now(),
+      ...(reversedBy ? { reversedBy } : {}),
+    }),
+  );
 }

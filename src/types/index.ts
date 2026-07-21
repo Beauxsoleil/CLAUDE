@@ -6,6 +6,11 @@ export interface Camp {
   doublePointDays?: string[];
   /** Optional 4-digit scorekeeper PIN; if set, viewer-locked devices need it to edit. */
   pin?: string;
+  /** Code of a separate "display camp" the hardware board reads; the app
+   *  overwrites its data with a frozen standings snapshot on "Update board". */
+  boardCampId?: string;
+  /** When the board snapshot was last published (ms epoch). */
+  boardPublishedAt?: number;
 }
 
 export interface Team {
@@ -60,4 +65,11 @@ export interface Transaction {
   type: TransactionType;
   scheduleItemId: string | null;
   createdAt: number;
+  /** Scorekeeper's device-local display name, if one was set when this was awarded. */
+  awardedBy?: string;
+  /** Set when this entry was reversed from the History tab (soft delete). Reversed
+   *  entries stay in the log as an audit record but no longer count toward totals. */
+  reversedAt?: number;
+  /** Scorekeeper name of whoever reversed this entry. */
+  reversedBy?: string;
 }

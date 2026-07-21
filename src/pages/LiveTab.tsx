@@ -3,8 +3,9 @@ import type { ScheduleItem } from '../types';
 import type { Placement, TeamWithTotal } from '../hooks/useCampData';
 import type { Tab } from '../App';
 import { ExtraPointsModal } from '../components/ExtraPointsModal';
+import { NamePromptSheet } from '../components/NamePromptSheet';
 import { useConfirm } from '../components/confirmContext';
-import { CheckIcon, PlayIcon, PlusIcon, ScreenIcon, ZapIcon } from '../components/icons';
+import { CheckIcon, PlayIcon, PlusIcon, ScreenIcon, TvIcon, ZapIcon } from '../components/icons';
 import { contrastText } from '../lib/colors';
 import { placeMedal } from '../lib/placements';
 import { formatPoints, formatSignedPoints } from '../lib/format';
@@ -13,6 +14,7 @@ import {
   awardPoints,
   deleteTransaction,
   markScheduleItemDone,
+  publishBoardSnapshot,
   setActiveScheduleItem,
 } from '../lib/campRepo';
 
@@ -30,6 +32,9 @@ export function LiveTab({
   isTodayDouble,
   eventPlacements,
   canEdit,
+  scorekeeperName,
+  onSetScorekeeperName,
+  boardCampId,
   onNavigate,
   onPresent,
 }: {
@@ -41,11 +46,23 @@ export function LiveTab({
   isTodayDouble: boolean;
   eventPlacements: Map<string, Placement[]>;
   canEdit: boolean;
+  scorekeeperName: string;
+  onSetScorekeeperName: (name: string) => void;
+  boardCampId: string | undefined;
   onNavigate: (tab: Tab) => void;
   onPresent: () => void;
 }) {
   const confirm = useConfirm();
   const [showExtra, setShowExtra] = useState(false);
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [boardFlash, setBoardFlash] = useState(false);
+
+  async function updateBoard() {
+    if (!boardCampId) return;
+    await publishBoardSnapshot(campId, boardCampId, teams);
+    setBoardFlash(true);
+    setTimeout(() => setBoardFlash(false), 2000);
+  }
   const [toast, setToast] = useState<UndoToast | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -113,6 +130,10 @@ export function LiveTab({
 
   async function awardForActiveEvent(team: TeamWithTotal) {
     if (!activeScheduleItem) return;
+    if (!scorekeeperName) {
+      setShowNamePrompt(true);
+      return;
+    }
     if (placeByTeam.has(team.id)) {
       const ok = await confirm({
         title: `${team.name} already got points`,
@@ -131,6 +152,7 @@ export function LiveTab({
       reason: activeScheduleItem.name,
       type: 'event',
       scheduleItemId: activeScheduleItem.id,
+      awardedBy: scorekeeperName,
     });
     const eff = basePoints * multiplier;
     celebrateAward([team.color], place === 1 || eff >= 1000);
@@ -149,6 +171,7 @@ export function LiveTab({
       reason,
       type: 'manual',
       scheduleItemId: null,
+      awardedBy: scorekeeperName,
     });
     const eff = points * multiplier;
     if (eff > 0) celebrateAward([team?.color ?? '#fbbf24'], eff >= 1000);
@@ -327,13 +350,28 @@ export function LiveTab({
         <section>
           <h3 className="mb-2.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-ink-faint">
             <span>Leaderboard</span>
-            <button
-              onClick={onPresent}
-              className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-ink-muted ring-1 ring-line transition active:scale-95"
-            >
-              <ScreenIcon className="h-3.5 w-3.5" />
-              Present
-            </button>
+            <div className="flex items-center gap-2">
+              {boardCampId && canEdit && (
+                <button
+                  onClick={updateBoard}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 transition active:scale-95 ${
+                    boardFlash
+                      ? 'bg-positive/15 text-positive ring-positive/40'
+                      : 'bg-surface text-ink-muted ring-line'
+                  }`}
+                >
+                  {boardFlash ? <CheckIcon className="h-3.5 w-3.5" /> : <TvIcon className="h-3.5 w-3.5" />}
+                  {boardFlash ? 'Updated' : 'Update board'}
+                </button>
+              )}
+              <button
+                onClick={onPresent}
+                className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-ink-muted ring-1 ring-line transition active:scale-95"
+              >
+                <ScreenIcon className="h-3.5 w-3.5" />
+                Present
+              </button>
+            </div>
           </h3>
           <div className="flex flex-col gap-2">
             {teams.map((team, i) => (
@@ -372,7 +410,7 @@ export function LiveTab({
 
       {teams.length > 0 && !toast && canEdit && (
         <button
-          onClick={() => setShowExtra(true)}
+          onClick={() => (scorekeeperName ? setShowExtra(true) : setShowNamePrompt(true))}
           className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] right-4 z-40 flex items-center gap-1.5 rounded-full bg-gradient-to-br from-accent-hi to-accent-lo px-5 py-3.5 font-bold text-on-accent shadow-xl shadow-accent/30 transition active:scale-95"
         >
           <PlusIcon className="h-4 w-4" />
@@ -382,6 +420,16 @@ export function LiveTab({
 
       {showExtra && (
         <ExtraPointsModal teams={teams} onClose={() => setShowExtra(false)} onAward={awardExtra} />
+      )}
+
+      {showNamePrompt && (
+        <NamePromptSheet
+          onSave={(name) => {
+            onSetScorekeeperName(name);
+            setShowNamePrompt(false);
+          }}
+          onClose={() => setShowNamePrompt(false)}
+        />
       )}
     </div>
   );
